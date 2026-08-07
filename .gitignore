@@ -1,0 +1,10 @@
+.venv/
+.idea/
+__pycache__/
+*.pyc
+uploads/
+exports/
+projects.json
+memory.json
+user_profile.json
+*_backup.json
