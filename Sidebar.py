@@ -115,6 +115,9 @@ def render_sidebar(
                 on_change=switch_active_project
             )
 
+            st.session_state["eden_active_project_name"] = (
+                selected_project
+            )
             st.sidebar.caption(f"Working in: {selected_project}")
 
             with st.sidebar.expander("Delete a Project"):

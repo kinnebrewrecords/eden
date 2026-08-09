@@ -335,7 +335,25 @@ if prompt:
         prompt
     )
 
-    if st.session_state.eden_pending_command:
+    normalized_prompt = prompt.lower().strip()
+    project_command_prefixes = (
+        "create project",
+        "select project",
+        "open project",
+        "show project",
+        "show projects",
+        "list projects"
+    )
+
+    # Project commands must always start immediately. They should never be
+    # mistaken for an answer to a previous estimate question.
+    if normalized_prompt.startswith(project_command_prefixes):
+        st.session_state.eden_pending_command = None
+        st.session_state.eden_pending_answers = []
+        command = prompt
+        answers = []
+
+    elif st.session_state.eden_pending_command:
         command = st.session_state.eden_pending_command
 
         answers = (

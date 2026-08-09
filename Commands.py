@@ -5995,6 +5995,9 @@ class CommandHandler:
         if len(parts) < 2 or parts[1].lower() not in ["project", "projects"]:
             return "Usage: show project"
 
+        if parts[1].lower() == "projects":
+            return self.list_projects_command()
+
         project = self.projects.get_active_project()
 
         if project is None:

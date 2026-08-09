@@ -92,6 +92,13 @@ def run_eden(command, answers=None):
     # project currently selected in the shared sidebar.
     eden.projects.load()
 
+    selected_project = st.session_state.get(
+        "eden_active_project_name"
+    )
+
+    if selected_project:
+        eden.projects.select_project(selected_project)
+
     try:
         with redirect_stdout(terminal_output):
             with patch("builtins.input", browser_input):
