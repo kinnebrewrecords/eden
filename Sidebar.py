@@ -203,7 +203,7 @@ def render_sidebar(
     st.sidebar.divider()
     st.sidebar.subheader("Workspace")
 
-     st.sidebar.link_button(
+    st.sidebar.link_button(
         "Dashboard",
         url="/",
         icon=":material/dashboard:",
