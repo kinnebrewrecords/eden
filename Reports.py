@@ -1,1 +1,5061 @@
-class ReportGenerator:    def create_concrete_slab_report(self, estimate):        rebar = estimate.get("rebar")        report = f"""                    CONCRETE SLAB ESTIMATE            Type:            {estimate["type"]}            Build Type:            {estimate.get("build_type", "Not Specified")}            Material:            {estimate["material"]}            Dimensions:            Length:            {estimate["length"]} ft            Width:            {estimate["width"]} ft            Thickness:            {estimate["thickness_inches"]} inches            CONCRETE VOLUME:            Cubic Feet:            {estimate["cubic_feet"]} ft³            Cubic Yards:            {estimate["cubic_yards"]} yd³            Order Quantity:            {estimate["order_quantity"]} yd³            Waste:            {estimate["waste_percent"]}%            """        if estimate.get("reinforced"):            report += """            REINFORCEMENT:            Status:            Reinforced Slab                """        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            report += """            REBAR:            Status:            Per approved structural plan                """        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            direction_1 = schedule.get("direction_1") or {}            direction_2 = schedule.get("direction_2") or {}            report += f"""            REBAR:            Status:            Approved structural plan            Direction 1:            {direction_1.get("bar_size", "Not specified")}            ({direction_1.get("linear_feet", "Not specified")} LF)            Direction 2:            {direction_2.get("bar_size", "Not specified")}            ({direction_2.get("linear_feet", "Not specified")} LF)                """        if estimate.get("wire_mesh"):            report += """            WIRE MESH:            Included:            Yes                """        if estimate.get("vapor_barrier"):            report += """            VAPOR BARRIER:            Included:            Yes            Material:            6 mil Poly                """        if estimate.get("gravel_base"):            report += """            GRAVEL BASE:            Included:            Yes            Material:            Compacted Aggregate Base                """        if estimate.get("control_joints"):            report += """            CONTROL JOINTS:            Included:            Yes                """        if estimate.get("forms"):            report += """            FORMS:            Included:            Yes                """        if (            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n            REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n            {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        if estimate.get("material_takeoff"):            report += "\n            MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n            {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report        return report    def create_concrete_footing_report(self, estimate):        rebar = estimate.get("rebar")        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            rebar_display = "Per approved structural plan"        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            main = schedule.get("main") or {}            rebar_display = (                f"Approved schedule - "                f"Footing bars: {main.get('bar_size', 'Not specified')} "                f"({main.get('linear_feet', 'Not specified')} LF)"            )        elif rebar:            rebar_display = str(rebar)        else:            rebar_display = "Not Included"        report = f"""                CONCRETE FOOTING ESTIMATE    Type:    {estimate["type"]}    Build Type:    {estimate.get("build_type", "Not Specified")}    Material:    {estimate["material"]}    DIMENSIONS:    Length:    {estimate["length"]} ft    Width:    {estimate["width"]} ft    Depth:    {estimate["depth_inches"]} inches    CONCRETE VOLUME:    Cubic Feet:    {estimate["cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    ASSEMBLY MATERIALS:    Reinforced:    {"Yes" if estimate.get("reinforced") else "No"}    Rebar:    {rebar_display}    Forms:    {"Included" if estimate.get("forms") else "Not Included"}    Gravel Base:    {"Included" if estimate.get("gravel_base") else "Not Included"}    Waste:    {estimate["waste_percent"]}%        """        if (            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n    REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n    {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_concrete_foundation_wall_report(self, estimate):        rebar = estimate.get("rebar")        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            rebar_display = "Per approved structural plan"        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            vertical = schedule.get("vertical") or {}            horizontal = schedule.get("horizontal") or {}            rebar_display = (                f"Approved schedule - "                f"Vertical: {vertical.get('bar_size', 'Not specified')} "                f"({vertical.get('linear_feet', 'Not specified')} LF); "                f"Horizontal: {horizontal.get('bar_size', 'Not specified')} "                f"({horizontal.get('linear_feet', 'Not specified')} LF)"            )        elif rebar:            rebar_display = str(rebar)        else:            rebar_display = "Not Included"        report = f"""                CONCRETE FOUNDATION WALL ESTIMATE    Type:    {estimate["type"]}    Build Type:    {estimate.get("build_type", "Not Specified")}    Material:    {estimate["material"]}    DIMENSIONS:    Length:    {estimate["length"]} ft    Height:    {estimate["height"]} ft    Thickness:    {estimate["thickness_inches"]} inches    CONCRETE VOLUME:    Cubic Feet:    {estimate["cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    Waste:    {estimate["waste_percent"]}%    ASSEMBLY MATERIALS:    Reinforced:    {"Yes" if estimate.get("reinforced") else "No"}    Rebar:    {rebar_display}    Forms:    {"Included" if estimate.get("forms") else "Not Included"}    Waterproofing:    {"Included" if estimate.get("waterproofing") else "Not Included"}        """        if (            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n    REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n    {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_concrete_pad_report(self, estimate):        rebar = estimate.get("rebar")        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            rebar_display = "Per approved structural plan"        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            direction_1 = schedule.get("direction_1") or {}            direction_2 = schedule.get("direction_2") or {}            rebar_display = (                f"Approved schedule - "                f"Direction 1: {direction_1.get('bar_size', 'Not specified')} "                f"({direction_1.get('linear_feet', 'Not specified')} LF); "                f"Direction 2: {direction_2.get('bar_size', 'Not specified')} "                f"({direction_2.get('linear_feet', 'Not specified')} LF)"            )        elif rebar:            rebar_display = str(rebar)        else:            rebar_display = "Not Included"        report = f"""                CONCRETE PAD ESTIMATE    Type:    {estimate["type"]}    Build Type:    {estimate.get("build_type", "Not Specified")}    Material:    {estimate["material"]}    DIMENSIONS:    Length:    {estimate["length"]} ft    Width:    {estimate["width"]} ft    Thickness:    {estimate["thickness_inches"]} inches    CONCRETE VOLUME:    Cubic Feet:    {estimate["cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    ASSEMBLY MATERIALS:    Reinforced:    {"Yes" if estimate.get("reinforced") else "No"}    Rebar:    {rebar_display}    Wire Mesh:    {"Included" if estimate.get("wire_mesh") else "Not Included"}    Vapor Barrier:    {"Included" if estimate.get("vapor_barrier") else "Not Included"}    Gravel Base:    {"Included" if estimate.get("gravel_base") else "Not Included"}    Control Joints:    {"Included" if estimate.get("control_joints") else "Not Included"}    Forms:    {"Included" if estimate.get("forms") else "Not Included"}    Waste:    {estimate["waste_percent"]}%        """        if (            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n    REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n    {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_concrete_pier_report(self, estimate):        rebar = estimate.get("rebar")        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            rebar_display = "Per approved structural plan"        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            vertical = schedule.get("vertical") or {}            ties = schedule.get("ties") or {}            rebar_display = (                f"Approved schedule — "                f"Vertical: {vertical.get('bar_size', 'Not specified')} "                f"({vertical.get('linear_feet', 'Not specified')} LF); "                f"Ties: {ties.get('bar_size', 'Not specified')} "                f"({ties.get('linear_feet', 'Not specified')} LF)"            )        elif rebar:            rebar_display = str(rebar)        else:            rebar_display = "Not Included"        report = f"""                CONCRETE PIER ESTIMATE    Type:    {estimate["type"]}    Build Type:    {estimate.get("build_type", "Not Specified")}    Material:    {estimate["material"]}    PIER DETAILS:    Diameter:    {estimate["diameter_inches"]} inches    Height:    {estimate["height"]} ft    Quantity:    {estimate["quantity"]}    CONCRETE VOLUME:    Each Pier:    {estimate["cubic_feet_each"]} ft³    Total:    {estimate["total_cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    ASSEMBLY MATERIALS:    Reinforced:    {"Yes" if estimate.get("reinforced") else "No"}    Rebar:    {rebar_display}    Forms:    {"Included" if estimate.get("forms") else "Not Included"}    Gravel Base:    {"Included" if estimate.get("gravel_base") else "Not Included"}    Waste:    {estimate["waste_percent"]}%        """        if (            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n    REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n    {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_concrete_column_report(self, estimate):        rebar = estimate.get("rebar")        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            rebar_display = "Per approved structural plan"        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            vertical = schedule.get("vertical") or {}            ties = schedule.get("ties") or {}            rebar_display = (                f"Approved schedule — "                f"Vertical: {vertical.get('bar_size', 'Not specified')} "                f"({vertical.get('linear_feet', 'Not specified')} LF); "                f"Ties: {ties.get('bar_size', 'Not specified')} "                f"({ties.get('linear_feet', 'Not specified')} LF)"            )        elif rebar:            rebar_display = str(rebar)        else:            rebar_display = "Not Included"        report = f"""                CONCRETE COLUMN ESTIMATE    Type:    {estimate["type"]}    Build Type:    {estimate.get("build_type", "Not Specified")}    Material:    {estimate["material"]}    COLUMN DETAILS:    Diameter:    {estimate["diameter_inches"]} inches    Height:    {estimate["height"]} ft    Quantity:    {estimate["quantity"]}    CONCRETE VOLUME:    Each Column:    {estimate["cubic_feet_each"]} ft³    Total:    {estimate["total_cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    ASSEMBLY MATERIALS:    Reinforced:    {"Yes" if estimate.get("reinforced") else "No"}    Rebar:    {rebar_display}    Forms:    {"Included" if estimate.get("forms") else "Not Included"}    Waste:    {estimate["waste_percent"]}%        """        if(            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n    REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n    {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_concrete_curb_report(self, estimate):        rebar = estimate.get("rebar")        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            rebar_display = "Per approved structural plan"        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            main = schedule.get("main") or {}            rebar_display = (                f"Approved schedule - "                f"Curb bars: {main.get('bar_size', 'Not specified')} "                f"({main.get('linear_feet', 'Not specified')} LF)"            )        elif rebar:            rebar_display = str(rebar)        else:            rebar_display = "Not Included"        report = f"""                CONCRETE CURB ESTIMATE    Type:    {estimate["type"]}    Build Type:    {estimate.get("build_type", "Not Specified")}    Material:    {estimate["material"]}    CURB DETAILS:    Length:    {estimate["length"]} ft    Width:    {estimate["width_inches"]} inches    Height:    {estimate["height_inches"]} inches    CONCRETE VOLUME:    Cubic Feet:    {estimate["cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    ASSEMBLY MATERIALS:    Reinforced:    {"Yes" if estimate.get("reinforced") else "No"}    Rebar:    {rebar_display}    Forms:    {"Included" if estimate.get("forms") else "Not Included"}    Gravel Base:    {"Included" if estimate.get("gravel_base") else "Not Included"}    Waste:    {estimate["waste_percent"]}%    """        if (            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n    REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n    {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        return report    def create_concrete_sidewalk_report(self, estimate):        rebar = estimate.get("rebar")        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            rebar_display = "Per approved structural plan"        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            main = schedule.get("main") or {}            rebar_display = (                f"Approved schedule - "                f"Sidewalk bars: {main.get('bar_size', 'Not specified')} "                f"({main.get('linear_feet', 'Not specified')} LF)"            )        elif rebar:            rebar_display = str(rebar)        else:            rebar_display = "Not Included"        report = f"""                CONCRETE SIDEWALK ESTIMATE    Type:    {estimate["type"]}    Build Type:    {estimate.get("build_type", "Not Specified")}    Material:    {estimate["material"]}    DIMENSIONS:    Length:    {estimate["length"]} ft    Width:    {estimate["width"]} ft    Thickness:    {estimate["thickness_inches"]} inches    CONCRETE VOLUME:    Cubic Feet:    {estimate["cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    ASSEMBLY MATERIALS:    Reinforced:    {"Yes" if estimate.get("reinforced") else "No"}    Rebar:    {rebar_display}    Wire Mesh:    {"Included" if estimate.get("wire_mesh") else "Not Included"}    Vapor Barrier:    {"Included" if estimate.get("vapor_barrier") else "Not Included"}    Gravel Base:    {"Included" if estimate.get("gravel_base") else "Not Included"}    Control Joints:    {"Included" if estimate.get("control_joints") else "Not Included"}    Forms:    {"Included" if estimate.get("forms") else "Not Included"}    Waste:    {estimate["waste_percent"]}%        """        if (            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n    REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n    {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_concrete_driveway_report(self, estimate):        rebar = estimate.get("rebar")        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            rebar_display = "Per approved structural plan"        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            direction_1 = schedule.get("direction_1") or {}            direction_2 = schedule.get("direction_2") or {}            rebar_display = (                f"Approved schedule - "                f"Direction 1: {direction_1.get('bar_size', 'Not specified')} "                f"({direction_1.get('linear_feet', 'Not specified')} LF); "                f"Direction 2: {direction_2.get('bar_size', 'Not specified')} "                f"({direction_2.get('linear_feet', 'Not specified')} LF)"            )        elif rebar:            rebar_display = str(rebar)        else:            rebar_display = "Not Included"        report = f"""                CONCRETE DRIVEWAY ESTIMATE    Type:    {estimate["type"]}    Build Type:    {estimate.get("build_type", "Not Specified")}    Material:    {estimate["material"]}    DIMENSIONS:    Length:    {estimate["length"]} ft    Width:    {estimate["width"]} ft    Thickness:    {estimate["thickness_inches"]} inches    CONCRETE VOLUME:    Cubic Feet:    {estimate["cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    ASSEMBLY MATERIALS:    Reinforced:    {"Yes" if estimate.get("reinforced") else "No"}    Rebar:    {rebar_display}    Wire Mesh:    {"Included" if estimate.get("wire_mesh") else "Not Included"}    Vapor Barrier:    {"Included" if estimate.get("vapor_barrier") else "Not Included"}    Gravel Base:    {"Included" if estimate.get("gravel_base") else "Not Included"}    Control Joints:    {"Included" if estimate.get("control_joints") else "Not Included"}    Forms:    {"Included" if estimate.get("forms") else "Not Included"}    Waste:    {estimate["waste_percent"]}%        """        if (            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n    REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n    {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_concrete_patio_report(self, estimate):        rebar = estimate.get("rebar")        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            rebar_display = "Per approved structural plan"        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            direction_1 = schedule.get("direction_1") or {}            direction_2 = schedule.get("direction_2") or {}            rebar_display = (                f"Approved schedule - "                f"Direction 1: {direction_1.get('bar_size', 'Not specified')} "                f"({direction_1.get('linear_feet', 'Not specified')} LF); "                f"Direction 2: {direction_2.get('bar_size', 'Not specified')} "                f"({direction_2.get('linear_feet', 'Not specified')} LF)"            )        elif rebar:            rebar_display = str(rebar)        else:            rebar_display = "Not Included"        report = f"""                CONCRETE PATIO ESTIMATE    Type:    {estimate["type"]}    Build Type:    {estimate.get("build_type", "Not Specified")}    Material:    {estimate["material"]}    DIMENSIONS:    Length:    {estimate["length"]} ft    Width:    {estimate["width"]} ft    Thickness:    {estimate["thickness_inches"]} inches    CONCRETE VOLUME:    Cubic Feet:    {estimate["cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    ASSEMBLY MATERIALS:    Reinforced:    {"Yes" if estimate.get("reinforced") else "No"}    Rebar:    {rebar_display}    Wire Mesh:    {"Included" if estimate.get("wire_mesh") else "Not Included"}    Vapor Barrier:    {"Included" if estimate.get("vapor_barrier") else "Not Included"}    Gravel Base:    {"Included" if estimate.get("gravel_base") else "Not Included"}    Control Joints:    {"Included" if estimate.get("control_joints") else "Not Included"}    Forms:    {"Included" if estimate.get("forms") else "Not Included"}    Waste:    {estimate["waste_percent"]}%        """        if (            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n    REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n    {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_concrete_steps_report(self, estimate):        rebar = estimate.get("rebar")        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            rebar_display = "Per approved structural plan"        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            main = schedule.get("main") or {}            rebar_display = (                f"Approved schedule - "                f"Step reinforcement: {main.get('bar_size', 'Not specified')} "                f"({main.get('linear_feet', 'Not specified')} LF)"            )        elif rebar:            rebar_display = str(rebar)        else:            rebar_display = "Not Included"        report = f"""                CONCRETE STEPS ESTIMATE    Type:    {estimate["type"]}    Build Type:    {estimate.get("build_type", "Not Specified")}    Material:    {estimate["material"]}    STEP DETAILS:    Width:    {estimate["width"]} ft    Tread Depth:    {estimate["tread_depth_inches"]} inches    Riser Height:    {estimate["riser_height_inches"]} inches    Number of Steps:    {estimate["steps"]}    CONCRETE VOLUME:    Cubic Feet:    {estimate["cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    ASSEMBLY MATERIALS:    Reinforced:    {"Yes" if estimate.get("reinforced") else "No"}    Rebar:    {rebar_display}    Gravel Base:    {"Included" if estimate.get("gravel_base") else "Not Included"}    Vapor Barrier:    {"Included" if estimate.get("vapor_barrier") else "Not Included"}    Forms:    {"Included" if estimate.get("forms") else "Not Included"}    Waste:    {estimate["waste_percent"]}%    """        if (            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n    REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n    {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        return report    def create_concrete_beam_report(self, estimate):        rebar = estimate.get("rebar")        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            rebar_display = "Per approved structural plan"        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            main = schedule.get("main") or {}            stirrups = schedule.get("stirrups") or {}            rebar_display = (                f"Approved schedule - "                f"Main: {main.get('bar_size', 'Not specified')} "                f"({main.get('linear_feet', 'Not specified')} LF); "                f"Stirrups: {stirrups.get('bar_size', 'Not specified')} "                f"({stirrups.get('linear_feet', 'Not specified')} LF)"            )        elif rebar:            rebar_display = str(rebar)        else:            rebar_display = "Not Included"        report = f"""                CONCRETE BEAM ESTIMATE    Type:    {estimate["type"]}    Build Type:    {estimate.get("build_type", "Not Specified")}    Material:    {estimate["material"]}    DIMENSIONS:    Length:    {estimate["length"]} ft    Width:    {estimate["width_inches"]} inches    Height:    {estimate["height_inches"]} inches    CONCRETE VOLUME:    Cubic Feet:    {estimate["cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    STRUCTURAL MATERIALS:    Reinforced:    {"Yes" if estimate.get("reinforced") else "No"}    Rebar:    {rebar_display}    Forms:    {"Included" if estimate.get("forms") else "Not Included"}    Waste:    {estimate["waste_percent"]}%    """        if (            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n    REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n    {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        return report    def create_concrete_ramp_report(self, estimate):        rebar = estimate.get("rebar")        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            rebar_display = "Per approved structural plan"        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            direction_1 = schedule.get("direction_1") or {}            direction_2 = schedule.get("direction_2") or {}            rebar_display = (                f"Approved schedule - "                f"Direction 1: {direction_1.get('bar_size', 'Not specified')} "                f"({direction_1.get('linear_feet', 'Not specified')} LF); "                f"Direction 2: {direction_2.get('bar_size', 'Not specified')} "                f"({direction_2.get('linear_feet', 'Not specified')} LF)"            )        elif rebar:            rebar_display = str(rebar)        else:            rebar_display = "Not Included"        report=f"""                CONCRETE RAMP ESTIMATE    Type:    {estimate["type"]}    Build Type:    {estimate.get("build_type", "Not Specified")}    Material:    {estimate["material"]}    DIMENSIONS:    Length:    {estimate["length"]} ft    Width:    {estimate["width"]} ft    Height:    {estimate["height_inches"]} inches    CONCRETE VOLUME:    Cubic Feet:    {estimate["cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    ASSEMBLY MATERIALS:    Reinforced:    {"Yes" if estimate.get("reinforced") else "No"}    Rebar:    {rebar_display}    Gravel Base:    {"Included" if estimate.get("gravel_base") else "Not Included"}    Forms:    {"Included" if estimate.get("forms") else "Not Included"}    Waste:    {estimate["waste_percent"]}%    """        if (            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n    REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n    {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        return report    def create_concrete_trench_report(self, estimate):        return f"""                CONCRETE TRENCH ESTIMATE            Type:            {estimate["type"]}            Material:            {estimate["material"]}            Dimensions:            Length:            {estimate["length"]} ft            Width:            {estimate["width_inches"]} inches            Depth:            {estimate["depth_inches"]} inches            Concrete Volume:            Cubic Feet:            {estimate["cubic_feet"]} ft³            Cubic Yards:            {estimate["cubic_yards"]} yd³            Order Quantity:            {estimate["order_quantity"]} yd³            Waste:            {estimate["waste_percent"]}%                                        STRUCTURAL DESIGN:                Reinforcement:                Per approved structural plan                This estimate includes concrete quantity only.        """    def create_concrete_retaining_wall_report(self, estimate):        return f"""                CONCRETE RETAINING WALL ESTIMATE            Type:            {estimate["type"]}            Material:            {estimate["material"]}            Dimensions:            Length:            {estimate["length"]} ft            Height:            {estimate["height"]} ft            Thickness:            {estimate["thickness_inches"]} inches            Concrete Volume:            Cubic Feet:            {estimate["cubic_feet"]} ft³            Cubic Yards:            {estimate["cubic_yards"]} yd³            Order Quantity:            {estimate["order_quantity"]} yd³            Waste:            {estimate["waste_percent"]}%                                    STRUCTURAL DESIGN:            Reinforcement:            Per approved engineered design            Footing and Drainage:            Not included in this concrete-volume estimate        """    def create_concrete_grade_beam_report(self, estimate):        rebar = estimate.get("rebar")        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":            rebar_display = "Per approved structural plan"        elif isinstance(rebar, dict) and rebar.get("status") == "specified":            schedule = rebar.get("schedule") or {}            main = schedule.get("main") or {}            stirrups = schedule.get("stirrups") or {}            rebar_display = (                f"Approved schedule - "                f"Main: {main.get('bar_size', 'Not specified')} "                f"({main.get('linear_feet', 'Not specified')} LF); "                f"Stirrups: {stirrups.get('bar_size', 'Not specified')} "                f"({stirrups.get('linear_feet', 'Not specified')} LF)"            )        else:            rebar_display = "Not Included"        report = f"""                CONCRETE GRADE BEAM ESTIMATE    Type:    {estimate["type"]}    Build Type:    {estimate.get("build_type", "Not Specified")}    Material:    {estimate["material"]}    DIMENSIONS:    Length:    {estimate["length"]} ft    Width:    {estimate["width_inches"]} inches    Height:    {estimate["height_inches"]} inches    CONCRETE VOLUME:    Cubic Feet:    {estimate["cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    ASSEMBLY MATERIALS:    Reinforced:    {"Yes" if estimate.get("reinforced") else "No"}    Rebar:    {rebar_display}    Forms:    {"Included" if estimate.get("forms") else "Not Included"}    Waste:    {estimate["waste_percent"]}%        """        if (            isinstance(rebar, dict)            and rebar.get("status") == "specified"            and rebar.get("takeoff")        ):            report += "\n    REBAR TAKEOFF:\n"            for item in rebar["takeoff"]:                report += (                    f"\n    {item['size']}: "                    f"{item['total_linear_feet']} LF, "                    f"{item['sticks']} sticks, "                    f"{item['weight_lbs']} lbs\n"                )        return report    def create_concrete_spread_footing_report(self, estimate):        report = f"""                CONCRETE SPREAD FOOTING ESTIMATE    Type:    {estimate["type"]}    Material:    {estimate["material"]}    DIMENSIONS:    Length:    {estimate["length"]} ft    Width:    {estimate["width"]} ft    Depth:    {estimate["depth_inches"]} inches    CONCRETE VOLUME:    Cubic Feet:    {estimate["cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    Waste:    {estimate["waste_percent"]}%            STRUCTURAL DESIGN:    Reinforcement and bearing requirements:    Per approved structural plan    This estimate includes concrete quantity only.        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_concrete_round_footing_report(self, estimate):        report = f"""                CONCRETE ROUND FOOTING ESTIMATE    Type:    {estimate["type"]}    Material:    {estimate["material"]}    FOOTING DETAILS:    Diameter:    {estimate["diameter_inches"]} inches    Depth:    {estimate["depth"]} ft    Quantity:    {estimate["quantity"]}    CONCRETE VOLUME:    Each Footing:    {estimate["cubic_feet_each"]} ft³    Total:    {estimate["total_cubic_feet"]} ft³    Cubic Yards:    {estimate["cubic_yards"]} yd³    Order Quantity:    {estimate["order_quantity"]} yd³    Waste:    {estimate["waste_percent"]}%            STRUCTURAL DESIGN:    Reinforcement and bearing requirements:    Per approved structural plan    This estimate includes concrete quantity only.        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_concrete_pile_cap_report(self, estimate):        return f"""                CONCRETE PILE CAP ESTIMATE            Type:            {estimate["type"]}            Material:            {estimate["material"]}            Dimensions:            Length:            {estimate["length"]} ft            Width:            {estimate["width"]} ft            Depth:            {estimate["depth_inches"]} inches            Concrete Volume:            Cubic Feet:            {estimate["cubic_feet"]} ft³            Cubic Yards:            {estimate["cubic_yards"]} yd³            Order Quantity:            {estimate["order_quantity"]} yd³            Waste:            {estimate["waste_percent"]}%                                    STRUCTURAL DESIGN:            Reinforcement:            Per approved structural plan            Pile layout, connections, and foundation design:            Not included in this concrete-volume estimate        """    def create_concrete_lintel_report(self, estimate):        return f"""                CONCRETE LINTEL ESTIMATE            Type:            {estimate["type"]}            Material:            {estimate["material"]}            Dimensions:            Length:            {estimate["length"]} ft            Width:            {estimate["width_inches"]} inches            Height:            {estimate["height_inches"]} inches            Concrete Volume:            Cubic Feet:            {estimate["cubic_feet"]} ft³            Cubic Yards:            {estimate["cubic_yards"]} yd³            Order Quantity:            {estimate["order_quantity"]} yd³            Waste:            {estimate["waste_percent"]}%                                    STRUCTURAL DESIGN:            Reinforcement:            Per approved structural plan            Bearing, span, and connection requirements:            Not included in this concrete-volume estimate        """    def create_concrete_slab_edge_report(self, estimate):        report = f"""            THICKENED CONCRETE SLAB EDGE ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        SLAB FOOTPRINT:        Length:        {estimate["length"]} ft        Width:        {estimate["width"]} ft        Perimeter:        {estimate["perimeter_lf"]} LF        THICKENED EDGE DETAILS:        Edge Width:        {estimate["edge_width_inches"]} inches        Edge Depth:        {estimate["edge_depth_inches"]} inches        Edge Area:        {estimate["edge_area_sqft"]} sq ft        CONCRETE VOLUME:        Cubic Feet:        {estimate["cubic_feet"]} ft³        Cubic Yards:        {estimate["cubic_yards"]} yd³        Order Quantity:        {estimate["order_quantity"]} yd³        Waste:        {estimate["waste_percent"]}%        Note:        This is the perimeter thickened-edge quantity only. Reinforcement,        edge dimensions, and structural design must follow approved plans.        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report                ################                #### LUMBER ####                ################    def create_frame_wall_report(self, estimate):        return f"""            FRAMED WALL ESTIMATE    Type:    {estimate["type"]}    Dimensions:    {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["height"]} ft    Identical Walls:    {estimate.get("quantity", 1)}        Studs:    {estimate["studs"]["quantity"]} - {estimate["studs"]["size"]} studs    Stud Length:    {estimate["studs"]["length"]}    Plates:    {estimate["plates"]["quantity"]} - {estimate["plates"]["size"]} x {estimate["plates"]["length"]}        Waste:    {estimate["waste_percent"]}%    """    def create_floor_joists_report(self, estimate):        spacing = estimate["spacing"]        if isinstance(spacing, (int, float)):            spacing_display = f"{spacing} inches OC"        else:            spacing_display = spacing        report = f"""             FLOOR JOIST ESTIMATE     Type:     {estimate["type"]}     Status:     {"Approved plan specified" if estimate.get("status") == "specified" else "Approved framing plan required"}     Dimensions:     {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft     Joists:     {estimate["joists"]["quantity"]} - {estimate["joists"]["size"]} x {estimate["joists"]["length"]}     Spacing:     {spacing_display}     Waste:     {estimate["waste_percent"]}%     """        if estimate.get("material_takeoff"):            report += "\n     MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n     {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_ceiling_joists_report(self, estimate):        spacing = estimate["spacing"]        if isinstance(spacing, (int, float)):            spacing_display = f"{spacing} inches OC"        else:            spacing_display = spacing        report = f"""            CEILING JOIST ESTIMATE    Type:    {estimate["type"]}    Status:    {"Approved plan specified" if estimate.get("status") == "specified" else "Approved framing plan required"}    Dimensions:    {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft    Joists:    {estimate["joists"]["quantity"]} - {estimate["joists"]["size"]} x {estimate["joists"]["length"]}    Spacing:    {spacing_display}    Waste:    {estimate["waste_percent"]}%    """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_rafter_report(self, estimate):        spacing = estimate["spacing"]        if isinstance(spacing, (int, float)):            spacing_display = f"{spacing} inches OC"        else:            spacing_display = spacing        report = f"""                ROOF RAFTER ESTIMATE        Type:        {estimate["type"]}        Status:        {"Approved plan specified" if estimate.get("status") == "specified" else "Approved framing plan required"}        Roof Span:        {estimate["span"]} ft        Roof Length:        {estimate["roof_length"]} ft        Pitch:        {estimate["pitch"]}        Calculated Rafter Line Length:        {estimate["rafter_length"]} ft        Rafters:        {estimate["rafters"]["quantity"]} - {estimate["rafters"]["size"]} x {estimate["rafters"]["length"]}        Spacing:        {spacing_display}        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_ridge_board_report(self, estimate):        report = f"""                RIDGE BOARD ESTIMATE        Type:        {estimate["type"]}        Status:        {"Approved plan specified" if estimate.get("status") == "specified" else "Approved framing plan required"}        Ridge Length:        {estimate["length"]} ft        Ridge Board:        {estimate["ridge_board"]["quantity"]} - {estimate["ridge_board"]["size"]} x {estimate["ridge_board"]["length"]}        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_collar_ties_report(self, estimate):        spacing = estimate["spacing"]        if isinstance(spacing, (int, float)):            spacing_display = f"{spacing} inches OC"        else:            spacing_display = spacing        report = f"""                COLLAR TIE ESTIMATE        Type:        {estimate["type"]}        Status:        {"Approved plan specified" if estimate.get("status") == "specified" else "Approved framing plan required"}        Roof Length:        {estimate["roof_length"]} ft        Collar Ties:        {estimate["collar_ties"]["quantity"]} - {estimate["collar_ties"]["size"]} x {estimate["collar_ties"]["length"]}        Spacing:        {spacing_display}        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_roof_sheathing_report(self, estimate):        report = f"""                ROOF SHEATHING ESTIMATE        Type:        {estimate["type"]}        Roof Surface Dimensions:        {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft        Area:        {estimate["area"]} sq ft        Material:        {estimate["material"]["quantity"]} - {estimate["material"]["size"]} {estimate["material"]["type"]}        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_wall_sheathing_report(self, estimate):        report = f"""                WALL SHEATHING ESTIMATE        Type:        {estimate["type"]}        Dimensions:        {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["height"]} ft        Area:        {estimate["area"]} sq ft        Material:        {estimate["material"]["quantity"]} - {estimate["material"]["size"]} {estimate["material"]["type"]}        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_header_report(self, estimate):        report = f"""                HEADER ESTIMATE        Type:        {estimate["type"]}        Opening Width:        {estimate["opening_width"]} ft        Header Status:        {"Approved plan specified" if estimate.get("status") == "specified" else "Approved structural plan required"}        Material:        {estimate["material"]}        Header:        {estimate["header"]["quantity"]} - {estimate["header"]["size"]} x {estimate["header"]["length"]}        Plies:        {estimate["plies"]}        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_blocking_report(self, estimate):        report = f"""                BLOCKING ESTIMATE        Type:        {estimate["type"]}        Wall Length:        {estimate["wall_length"]} ft        Rows:        {estimate["rows"]}        Blocking:        {estimate["blocking"]["quantity"]} - {estimate["blocking"]["size"]} x {estimate["blocking"]["length"]}        Spacing:        {estimate["spacing"]} inches OC        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_plate_report(self, estimate):        report = f"""                WALL PLATE ESTIMATE            Type:            {estimate["type"]}            Material:            {estimate["material"]}            Plate Type:            {estimate["plate_type"]}            Linear Feet:            {estimate["linear_feet"]}            20 ft Boards:            {estimate["boards"]}            Waste:            {estimate["waste_percent"]} %        """        if estimate.get("material_takeoff"):            report += "\n            MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n            {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_subfloor_sheathing_report(self, estimate):        report = f"""                SUBFLOOR SHEATHING ESTIMATE        Type:        {estimate["type"]}        Dimensions:        {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft        Area:        {estimate["area"]} sq ft        Material:        {estimate["material"]["quantity"]} - {estimate["material"]["size"]}        {estimate["material"]["thickness"]} {estimate["material"]["type"]}        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_rim_joists_report(self, estimate):        report = f"""                RIM JOIST ESTIMATE        Type:        {estimate["type"]}        Status:        {"Approved plan specified" if estimate.get("status") == "specified" else "Approved framing plan required"}        Dimensions:        {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft        Perimeter:        {estimate["perimeter"]} linear feet        Rim Joists:        {estimate["rim_joists"]["quantity"]} - {estimate["rim_joists"]["size"]} x {estimate["rim_joists"]["length"]}        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_shingle_report(self, estimate):        report = f"""                SHINGLE ESTIMATE        Type:        {estimate["type"]}        Roof Surface Dimensions:        {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft        Area:        {estimate["area"]} sq ft        Roofing Squares:        {estimate["squares"]}        Material:        {estimate["shingles"]["bundles"]} bundles        Asphalt Shingles        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_underlayment_report(self, estimate):        report = f"""                ROOF UNDERLAYMENT ESTIMATE        Type:        {estimate["type"]}        Roof Surface Dimensions:        {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft        Area:        {estimate["area"]} sq ft        Material:        {estimate["material"]["rolls"]} rolls        {estimate["material"]["type"]}        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_drip_edge_report(self, estimate):        report = f"""                DRIP EDGE ESTIMATE        Type:        {estimate["type"]}        Required Length:        {estimate["required_length"]} linear feet        Order Length:        {estimate["total_length"]} linear feet        Material:        {estimate["material"]["quantity"]} - {estimate["material"]["size"]} drip-edge pieces        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_ice_water_report(self, estimate):        report = f"""                ICE & WATER SHIELD ESTIMATE        Type:        {estimate["type"]}        Required Coverage:        {estimate["required_coverage_sqft"]} sq ft        Coverage with Waste:        {estimate["area_with_waste"]} sq ft        Material:        {estimate["material"]["rolls"]} rolls        {estimate["material"]["type"]}        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_ridge_vent_report(self, estimate):        report = f"""                RIDGE VENT ESTIMATE        Type:        {estimate["type"]}        Required Length:        {estimate["length"]} linear feet        Material:        {estimate["material"]["quantity"]} - {estimate["material"]["size"]} ridge-vent sections        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_flashing_report(self, estimate):        report = f"""                FLASHING ESTIMATE        Type:        {estimate["type"]}        Locations:        {estimate["locations"]}        Material:        {estimate["material"]["quantity"]}        {estimate["material"]["type"]}        Waste:        {estimate["waste_percent"]}%        """        if estimate.get("material_takeoff"):            report += "\n        MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n        {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_studs_report(self, estimate):        report = f"""                WALL STUD ESTIMATE            Type:            {estimate["type"]}            Material:            {estimate["material"]}            Wall Dimensions:            {estimate["wall_length"]} ft x {estimate["wall_height"]} ft            Spacing:            {estimate["spacing"]}            Stud Length:            {estimate["stud_length"]}            Studs Required:            {estimate["quantity"]}            Order Quantity:            {estimate["total_quantity"]}            Waste:            {estimate["waste_percent"]} %        """        if estimate.get("material_takeoff"):            report += "\n            MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n            {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_king_studs_report(self, estimate):        return f"""                KING STUD ESTIMATE            Type:            {estimate["type"]}            Material:            {estimate["material"]}            Openings:            {estimate["openings"]}            Wall Height:            {estimate["wall_height"]} ft            Stud Length:            {estimate["stud_length"]}            Required:            {estimate["quantity"]} King Studs            Order Quantity:            {estimate["total_quantity"]} King Studs            Waste:            {estimate["waste_percent"]} %        """    def create_jack_studs_report(self, estimate):        report = f"""                JACK STUD ESTIMATE            Type:            {estimate["type"]}            Material:            {estimate["material"]}            Openings:            {estimate["openings"]}            Opening Height:            {estimate["opening_height"]} ft            Stud Length:            {estimate["stud_length"]}            Required:            {estimate["quantity"]} Jack Studs            Order Quantity:            {estimate["total_quantity"]} Jack Studs            Waste:            {estimate["waste_percent"]} %        """        if estimate.get("material_takeoff"):            report += "\n            MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n            {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_cripple_studs_report(self, estimate):        report = f"""                CRIPPLE STUD ESTIMATE            Type:            {estimate["type"]}            Material:            {estimate["material"]}            Openings:            {estimate["openings"]}            Opening Width:            {estimate["opening_width"]} ft            Spacing:            {estimate["spacing"]}            Required:            {estimate["quantity"]} Cripple Studs            Order Quantity:            {estimate["total_quantity"]} Cripple Studs            Waste:            {estimate["waste_percent"]} %        """        if estimate.get("material_takeoff"):            report += "\n            MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n            {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_corner_posts_report(self, estimate):        report = f"""                CORNER POST ESTIMATE            Type:            {estimate["type"]}            Material:            {estimate["material"]}            Corners:            {estimate["corners"]}            Wall Height:            {estimate["wall_height"]} ft            Stud Length:            {estimate["stud_length"]}            Required:            {estimate["quantity"]} Corner Posts            Order Quantity:            {estimate["total_quantity"]} Corner Posts            Waste:            {estimate["waste_percent"]} %        """        if estimate.get("material_takeoff"):            report += "\n            MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n            {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_sill_plate_report(self, estimate):        report = f"""                SILL PLATE ESTIMATE            Type:            {estimate["type"]}            Material:            {estimate["material"]}            Foundation Length:            {estimate["length"]} ft            Order Length:            {estimate["total_length"]} ft            20 ft Boards:            {estimate["boards"]}            Waste:            {estimate["waste_percent"]} %        """        if estimate.get("material_takeoff"):            report += "\n            MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n            {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_post_report(self, estimate):        report = f"""                POST ESTIMATE            Type:            {estimate["type"]}            Status:            {"Approved plan specified" if estimate.get("status") == "specified" else "Approved structural plan required"}            Material:            {estimate["material"]}            Quantity:            {estimate["quantity"]}            Order Quantity:            {estimate["total_quantity"]}            Height:            {estimate["height"]} ft            Post Length:            {estimate["post_length"]}            Waste:            {estimate["waste_percent"]} %        """        if estimate.get("material_takeoff"):            report += "\n            MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n            {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_beam_report(self, estimate):        report = f"""                BEAM ESTIMATE            Type:            {estimate["type"]}            Status:            {"Approved plan specified" if estimate.get("status") == "specified" else "Approved structural plan required"}            Material:            {estimate["material"]}            Beam Length:            {estimate["length"]} ft            Members:            {estimate["plies"]}            Total Linear Feet:            {estimate["linear_feet"]}            Order Quantity:            {estimate["boards"]}            Waste:            {estimate["waste_percent"]} %        """        if estimate.get("material_takeoff"):            report += "\n            MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n            {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    #################    #### DRYWALL ####    #################    def create_wall_drywall_report(self, estimate):        report = f"""            WALL DRYWALL ESTIMATE        Type:        {estimate["type"]}        Dimensions:        {estimate["length"]} ft x {estimate["height"]} ft                Identical Wall Sections:        {estimate.get("quantity", 1)}        Area:        {estimate["area"]} sq ft        Material:        {estimate["sheets"]} - 4x8 Drywall Sheets        Waste:        {estimate["waste_percent"]} %        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_ceiling_drywall_report(self, estimate):        report = f"""                CEILING DRYWALL ESTIMATE            Type:            {estimate["type"]}            Dimensions:            {estimate["length"]} ft x {estimate["width"]} ft            Area:            {estimate["area"]} sq ft            Material:            {estimate["sheets"]} - 4x8 Drywall Sheets            Waste:            {estimate["waste_percent"]} %            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    ####################    #### INSULATION ####    ####################    def create_batt_insulation_report(self, estimate):        report = f"""                    BATT INSULATION ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        R-Value:        {estimate["r_value"]}        Stud Spacing:        {estimate["stud_spacing"]} inches OC        Dimensions:        {estimate["length"]} ft x {estimate["height"]} ft                Identical Wall Sections:        {estimate.get("quantity", 1)}        Area:        {estimate["area"]:.1f} sq ft        Individual Batts:        {estimate["batts"]}        Bundles to Order:        {estimate["bundles"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_blown_insulation_report(self, estimate):        report = f"""                    BLOWN-IN INSULATION ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        R-Value:        {estimate["r_value"]}        Dimensions:        {estimate["length"]} ft x {estimate["width"]} ft        Area:        {estimate["area"]:.1f} sq ft        Coverage Per Bag:        {estimate["coverage_per_bag"]} sq ft        Bags to Order:        {estimate["bags"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_spray_foam_report(self, estimate):        report = f"""                    SPRAY FOAM INSULATION ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        R-Value:        {estimate["r_value"]}        Dimensions:        {estimate["length"]} ft x {estimate["height"]} ft        Area:        {estimate["area"]:.1f} sq ft        Thickness:        {estimate["thickness_inches"]} inches        Coverage Per Kit at That Thickness:        {estimate["coverage_per_kit_sqft"]} sq ft        Kits to Order:        {estimate["kits"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    ##############################    #### DRYWALL FINISH/PAINT ####    ##############################    def create_joint_compound_report(self, estimate):        report = f"""                    JOINT COMPOUND ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        Area:        {estimate["area"]:.1f} sq ft        Coverage Per Bucket:        {estimate["coverage_per_bucket"]} sq ft        Buckets to Order:        {estimate["buckets"]} - 5 Gallon Buckets        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_drywall_tape_report(self, estimate):        report = f"""                    DRYWALL TAPE ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        Area:        {estimate["area"]:.1f} sq ft        Coverage Per Roll:        {estimate["coverage_per_roll"]} sq ft        Rolls to Order:        {estimate["rolls"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_corner_bead_report(self, estimate):        report = f"""                    CORNER BEAD ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        Total Outside-Corner Length:        {estimate["length"]} LF        Piece Length:        {estimate["piece_length"]} ft        Pieces to Order:        {estimate["pieces"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_drywall_screws_report(self, estimate):        report = f"""                    DRYWALL SCREW ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        Area:        {estimate["area"]:.1f} sq ft        Drywall Sheets:        {estimate["sheets"]}        Screws Per Sheet:        {estimate["screws_per_sheet"]}        Total Screws:        {estimate["screws"]}        Box Size:        {estimate["screws_per_box"]} screws        Boxes to Order:        {estimate["boxes"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_drywall_sanding_report(self, estimate):        report = f"""                    DRYWALL SANDING ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        Area:        {estimate["area"]:.1f} sq ft        Coverage Per Pack:        {estimate["coverage_per_pack"]} sq ft        Packs to Order:        {estimate["packs"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_primer_report(self, estimate):        report = f"""                    DRYWALL PRIMER ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        Area:        {estimate["area"]:.1f} sq ft        Coats:        {estimate["coats"]}        Coverage:        {estimate["coverage_per_gallon"]} sq ft per gallon        Gallons to Order:        {estimate["gallons"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_texture_report(self, estimate):        report = f"""                    DRYWALL TEXTURE ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        Area:        {estimate["area"]:.1f} sq ft        Coverage:        {estimate["coverage_per_bucket"]} sq ft per bucket        Buckets to Order:        {estimate["buckets"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_interior_paint_report(self, estimate):        report = f"""                    INTERIOR PAINT ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        Area:        {estimate["area"]:.1f} sq ft        Coats:        {estimate["coats"]}        Coverage:        {estimate["coverage_per_gallon"]} sq ft per gallon        Gallons to Order:        {estimate["gallons"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_ceiling_paint_report(self, estimate):        report = f"""                    CEILING PAINT ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        Area:        {estimate["area"]:.1f} sq ft        Coats:        {estimate["coats"]}        Coverage:        {estimate["coverage_per_gallon"]} sq ft per gallon        Gallons to Order:        {estimate["gallons"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_trim_paint_report(self, estimate):        report = f"""                    TRIM PAINT ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        Total Trim Length:        {estimate["length"]} LF        Trim Face Width:        {estimate["face_width_inches"]} inches        Paint Area:        {estimate["area"]:.1f} sq ft        Coats:        {estimate["coats"]}        Coverage:        {estimate["coverage_per_gallon"]} sq ft per gallon        Gallons to Order:        {estimate["gallons"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_door_paint_report(self, estimate):        report = f"""                    DOOR PAINT ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        Doors:        {estimate["doors"]}        Coats:        {estimate["coats"]}        Coverage Assumption:        {estimate["doors_per_gallon"]} doors per gallon        Gallons to Order:        {estimate["gallons"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_exterior_paint_report(self, estimate):        report = f"""                    EXTERIOR PAINT ESTIMATE        Type:        {estimate["type"]}        Material:        {estimate["material"]}        Area:        {estimate["area"]:.1f} sq ft        Coats:        {estimate["coats"]}        Coverage:        {estimate["coverage_per_gallon"]} sq ft per gallon        Gallons to Order:        {estimate["gallons"]}        Waste:        {estimate["waste_percent"]}%            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    ####################    #### ELECTRICAL ####    ####################    def create_outlet_report(self, estimate):        status = (            "Approved electrical schedule specified"            if estimate["status"] == "specified"            else "Approved electrical plan required"        )        total_display = (            f"{estimate['total']} outlets"            if estimate["total"] is not None            else "TBD — per approved electrical plan"        )        report = f"""                    ELECTRICAL OUTLET ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Quantity from Plan:        {estimate["quantity"]}        Order Quantity:        {total_display}        Note:        Device type, rating, compatibility, and installation must match the        approved electrical drawings and panel schedule.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_switch_report(self, estimate):        status = (            "Approved electrical schedule specified"            if estimate["status"] == "specified"            else "Approved electrical plan required"        )        total_display = (            f"{estimate['total']} switches"            if estimate["total"] is not None            else "TBD — per approved electrical plan"        )        report = f"""                    ELECTRICAL SWITCH ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Quantity from Plan:        {estimate["quantity"]}        Order Quantity:        {total_display}                    Note:        Device type, rating, compatibility, and installation must match the        approved electrical drawings and panel schedule.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_lighting_fixture_report(self, estimate):        status = (            "Approved lighting schedule specified"            if estimate["status"] == "specified"            else "Approved electrical plan required"        )        total_display = (            f"{estimate['total']} fixtures"            if estimate["total"] is not None            else "TBD — per approved electrical plan"        )        report = f"""                    LIGHTING FIXTURE ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Quantity from Plan:        {estimate["quantity"]}        Order Quantity:        {total_display}                    Note:        Device type, rating, compatibility, and installation must match the        approved electrical drawings and panel schedule.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_electrical_box_report(self, estimate):        status = (            "Approved electrical-box schedule specified"            if estimate["status"] == "specified"            else "Approved electrical plan required"        )        total_display = (            f"{estimate['total']} boxes"            if estimate["total"] is not None            else "TBD — per approved electrical plan"        )        report = f"""                    ELECTRICAL BOX ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Quantity from Plan:        {estimate["quantity"]}        Order Quantity:        {total_display}                    Note:        Device type, rating, compatibility, and installation must match the        approved electrical drawings and panel schedule.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_romex_report(self, estimate):        status = (            "Approved wire schedule specified"            if estimate["status"] == "specified"            else "Approved electrical plan required"        )        total_display = (            f"{estimate['total']} LF"            if estimate["total"] is not None            else "TBD — per approved electrical plan"        )        report = f"""                    ELECTRICAL CABLE ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Length from Plan:        {estimate["length"]} LF        Order Length:        {total_display}                    Note:        Device type, rating, compatibility, and installation must match the        approved electrical drawings and panel schedule.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_breaker_report(self, estimate):        status = (            "Approved breaker schedule specified"            if estimate["status"] == "specified"            else "Approved electrical plan required"        )        total_display = (            f"{estimate['total']} breakers"            if estimate["total"] is not None            else "TBD — per approved electrical plan"        )        report = f"""                    CIRCUIT BREAKER ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Quantity from Plan:        {estimate["quantity"]}        Order Quantity:        {total_display}                    Note:        Device type, rating, compatibility, and installation must match the        approved electrical drawings and panel schedule.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_panel_report(self, estimate):        status = (            "Approved electrical panel schedule specified"            if estimate["status"] == "specified"            else "Approved electrical plan required"        )        quantity_display = (            str(estimate["quantity"])            if estimate["quantity"] is not None            else "TBD — per approved electrical plan"        )        report = f"""                    ELECTRICAL PANEL ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Panel Specification:        {estimate["material"]}        Quantity:        {quantity_display}                    Note:        Device type, rating, compatibility, and installation must match the        approved electrical drawings and panel schedule.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    ##################    #### PLUMBING ####    ##################    def create_pex_report(self, estimate):        status = (            "Approved plumbing pipe schedule specified"            if estimate["status"] == "specified"            else "Approved plumbing plan required"        )        total_display = (            f"{estimate['total_length']} LF"            if estimate["total_length"] is not None            else "TBD — per approved plumbing plan"        )        report = f"""                    PEX PIPE ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Length from Plan:        {estimate["length"]} LF        Order Length:        {total_display}        Length Allowance:        {estimate["length_allowance_percent"]}%        Note:        Pipe size, material, and installation must match the approved plumbing plans.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_pvc_drain_report(self, estimate):        status = (            "Approved plumbing pipe schedule specified"            if estimate["status"] == "specified"            else "Approved plumbing plan required"        )        total_display = (            f"{estimate['total_length']} LF"            if estimate["total_length"] is not None            else "TBD — per approved plumbing plan"        )        report = f"""                    PVC DRAIN PIPE ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Length from Plan:        {estimate["length"]} LF        Order Length:        {total_display}        Length Allowance:        {estimate["length_allowance_percent"]}%        Note:        Pipe size, material, and installation must match the approved plumbing plans.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_copper_pipe_report(self, estimate):        status = (            "Approved plumbing pipe schedule specified"            if estimate["status"] == "specified"            else "Approved plumbing plan required"        )        total_display = (            f"{estimate['total_length']} LF"            if estimate["total_length"] is not None            else "TBD — per approved plumbing plan"        )        report = f"""                    COPPER PIPE ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Length from Plan:        {estimate["length"]} LF        Order Length:        {total_display}        Length Allowance:        {estimate["length_allowance_percent"]}%        Note:        Pipe size, material, and installation must match the approved plumbing plans.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_fittings_report(self, estimate):        status = (            "Approved plumbing fitting schedule specified"            if estimate["status"] == "specified"            else "Approved plumbing plan required"        )        total_display = (            f"{estimate['total_quantity']} pieces"            if estimate["total_quantity"] is not None            else "TBD — per approved plumbing plan"        )        report = f"""                    PLUMBING FITTINGS ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Quantity from Plan:        {estimate["quantity"]}        Order Quantity:        {total_display}        Note:        Fitting type, material, size, and installation must match the approved        plumbing plans and schedules.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_plumbing_valve_report(self, estimate):        status = (            "Approved plumbing valve schedule specified"            if estimate["status"] == "specified"            else "Approved plumbing plan required"        )        total_display = (            f"{estimate['total_quantity']} valves"            if estimate["total_quantity"] is not None            else "TBD — per approved plumbing plan"        )        report = f"""                    PLUMBING VALVE ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Quantity from Plan:        {estimate["quantity"]}        Order Quantity:        {total_display}        Note:        Valve type, material, size, and installation must match the approved        plumbing plans and schedules.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_toilet_report(self, estimate):        status = (            "Approved plumbing fixture schedule specified"            if estimate["status"] == "specified"            else "Approved plumbing fixture schedule required"        )        total_display = (            f"{estimate['total_quantity']} toilets"            if estimate["total_quantity"] is not None            else "TBD — per approved plumbing fixture schedule"        )        report = f"""                    TOILET ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Quantity from Schedule:        {estimate["quantity"]}        Order Quantity:        {total_display}        Note:        Fixture model, connections, and installation must match the approved        plumbing fixture schedule and plans.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_sink_report(self, estimate):        status = (            "Approved plumbing fixture schedule specified"            if estimate["status"] == "specified"            else "Approved plumbing fixture schedule required"        )        total_display = (            f"{estimate['total_quantity']} sinks"            if estimate["total_quantity"] is not None            else "TBD — per approved plumbing fixture schedule"        )        report = f"""                    SINK ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Quantity from Schedule:        {estimate["quantity"]}        Order Quantity:        {total_display}        Note:        Fixture model, connections, and installation must match the approved        plumbing fixture schedule and plans.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_faucet_report(self, estimate):        status = (            "Approved plumbing fixture schedule specified"            if estimate["status"] == "specified"            else "Approved plumbing fixture schedule required"        )        total_display = (            f"{estimate['total_quantity']} faucets"            if estimate["total_quantity"] is not None            else "TBD — per approved plumbing fixture schedule"        )        report = f"""                    FAUCET ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Quantity from Schedule:        {estimate["quantity"]}        Order Quantity:        {total_display}        Note:        Fixture model, connections, and installation must match the approved        plumbing fixture schedule and plans.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_shower_report(self, estimate):        status = (            "Approved plumbing fixture schedule specified"            if estimate["status"] == "specified"            else "Approved plumbing fixture schedule required"        )        total_display = (            f"{estimate['total_quantity']} assemblies"            if estimate["total_quantity"] is not None            else "TBD — per approved plumbing fixture schedule"        )        report = f"""                    SHOWER/TUB ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Quantity from Schedule:        {estimate["quantity"]}        Order Quantity:        {total_display}        Note:        Fixture model, connections, and installation must match the approved        plumbing fixture schedule and plans.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_water_heater_report(self, estimate):        status = (            "Approved water-heater/MEP schedule specified"            if estimate["status"] == "specified"            else "Approved water-heater/MEP schedule required"        )        total_display = (            f"{estimate['total_quantity']} units"            if estimate["total_quantity"] is not None            else "TBD — per approved water-heater/MEP schedule"        )        report = f"""                    WATER HEATER ESTIMATE        Type:        {estimate["type"]}        Status:        {status}        Material:        {estimate["material"]}        Quantity from Schedule:        {estimate["quantity"]}        Order Quantity:        {total_display}        Note:        Capacity, fuel type, venting, electrical requirements, and installation        must match the approved MEP schedule and plans.            """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    ##############    #### HVAC ####    ##############    def create_duct_report(self, estimate):        status = (            "Approved HVAC duct schedule specified"            if estimate["status"] == "specified"            else "Approved HVAC plan required"        )        order_length = (            f"{estimate['total_length']} LF"            if estimate["total_length"] is not None            else "TBD — per approved HVAC plan"        )        report = f"""                HVAC DUCTWORK ESTIMATE            Type:            {estimate["type"]}            Status:            {status}            Material:            {estimate["material"]}            Length from Plan:            {estimate["length"]} LF            Order Length:            {order_length}            Length Allowance:            {estimate["length_allowance_percent"]}%            Note:            Duct type, size, insulation, fittings, and installation must match            the approved HVAC drawings and duct schedule.        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_supply_register_report(self, estimate):        status = (            "Approved HVAC register schedule specified"            if estimate["status"] == "specified"            else "Approved HVAC plan required"        )        order_quantity = (            f"{estimate['total_quantity']} registers"            if estimate["total_quantity"] is not None            else "TBD — per approved HVAC plan"        )        report = f"""                SUPPLY REGISTER ESTIMATE            Type:            {estimate["type"]}            Status:            {status}            Material:            {estimate["material"]}            Quantity from Plan:            {estimate["quantity"]}            Order Quantity:            {order_quantity}            Note:            Register size, finish, airflow rating, and installation must match            the approved HVAC drawings and register schedule.        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_return_grille_report(self, estimate):        status = (            "Approved HVAC grille schedule specified"            if estimate["status"] == "specified"            else "Approved HVAC plan required"        )        order_quantity = (            f"{estimate['total_quantity']} grilles"            if estimate["total_quantity"] is not None            else "TBD — per approved HVAC plan"        )        report = f"""                RETURN GRILLE ESTIMATE            Type:            {estimate["type"]}            Status:            {status}            Material:            {estimate["material"]}            Quantity from Plan:            {estimate["quantity"]}            Order Quantity:            {order_quantity}            Note:            Grille size, finish, airflow rating, and installation must match            the approved HVAC drawings and grille schedule.        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_flex_duct_report(self, estimate):        status = (            "Approved HVAC duct schedule specified"            if estimate["status"] == "specified"            else "Approved HVAC plan required"        )        order_length = (            f"{estimate['total_length']} LF"            if estimate["total_length"] is not None            else "TBD — per approved HVAC plan"        )        report = f"""                FLEX DUCT ESTIMATE            Type:            {estimate["type"]}            Status:            {status}            Material:            {estimate["material"]}            Length from Plan:            {estimate["length"]} LF            Order Length:            {order_length}            Length Allowance:            {estimate["length_allowance_percent"]}%            Note:            Duct diameter, insulation rating, connections, and installation            must match the approved HVAC drawings and duct schedule.        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_thermostat_report(self, estimate):        status = (            "Approved HVAC controls schedule specified"            if estimate["status"] == "specified"            else "Approved HVAC controls schedule required"        )        order_quantity = (            f"{estimate['total_quantity']} thermostats"            if estimate["total_quantity"] is not None            else "TBD — per approved HVAC controls schedule"        )        report = f"""                THERMOSTAT ESTIMATE            Type:            {estimate["type"]}            Status:            {status}            Material:            {estimate["material"]}            Quantity from Schedule:            {estimate["quantity"]}            Order Quantity:            {order_quantity}            Note:            Thermostat model, equipment compatibility, controls wiring, and            installation must match the approved HVAC controls schedule.        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_air_filter_report(self, estimate):        status = (            "Approved HVAC equipment schedule specified"            if estimate["status"] == "specified"            else "Approved HVAC equipment schedule required"        )        order_quantity = (            f"{estimate['total_quantity']} filters"            if estimate["total_quantity"] is not None            else "TBD — per approved HVAC equipment schedule"        )        report = f"""                AIR FILTER ESTIMATE            Type:            {estimate["type"]}            Status:            {status}            Material:            {estimate["material"]}            Quantity from Schedule:            {estimate["quantity"]}            Order Quantity:            {order_quantity}            Note:            Filter dimensions, MERV rating, quantity per unit, and equipment            compatibility must match the approved HVAC equipment schedule.        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_condensate_report(self, estimate):        status = (            "Approved condensate-drain specification specified"            if estimate["status"] == "specified"            else "Approved HVAC plan required"        )        order_length = (            f"{estimate['total_length']} LF"            if estimate["total_length"] is not None            else "TBD — per approved HVAC plan"        )        report = f"""                CONDENSATE DRAIN ESTIMATE            Type:            {estimate["type"]}            Status:            {status}            Material:            {estimate["material"]}            Length from Plan:            {estimate["length"]} LF            Order Length:            {order_length}            Length Allowance:            {estimate["length_allowance_percent"]}%            Note:            Drain material, size, slope, traps, fittings, and installation must            match the approved HVAC drawings and manufacturer requirements.        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_furnace_report(self, estimate):        status = (            "Approved HVAC equipment schedule specified"            if estimate["status"] == "specified"            else "Approved HVAC equipment schedule required"        )        order_quantity = (            f"{estimate['total_quantity']} furnaces"            if estimate["total_quantity"] is not None            else "TBD — per approved HVAC equipment schedule"        )        report = f"""                FURNACE ESTIMATE            Type:            {estimate["type"]}            Status:            {status}            Material:            {estimate["material"]}            Quantity from Schedule:            {estimate["quantity"]}            Order Quantity:            {order_quantity}            Note:            Furnace capacity, fuel type, efficiency, electrical requirements,            venting, and installation must match the approved HVAC schedule.        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_ac_report(self, estimate):        status = (            "Approved HVAC equipment schedule specified"            if estimate["status"] == "specified"            else "Approved HVAC equipment schedule required"        )        order_quantity = (            f"{estimate['total_quantity']} units"            if estimate["total_quantity"] is not None            else "TBD — per approved HVAC equipment schedule"        )        report = f"""                AIR CONDITIONER ESTIMATE            Type:            {estimate["type"]}            Status:            {status}            Material:            {estimate["material"]}            Quantity from Schedule:            {estimate["quantity"]}            Order Quantity:            {order_quantity}            Note:            Equipment capacity, efficiency, electrical requirements, line-set            compatibility, and installation must match the approved HVAC schedule.        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report    def create_refrigerant_report(self, estimate):        status = (            "Approved HVAC line-set schedule specified"            if estimate["status"] == "specified"            else "Approved HVAC plan required"        )        order_length = (            f"{estimate['total_length']} LF"            if estimate["total_length"] is not None            else "TBD - per approved HVAC plan"        )        report = f"""                REFRIGERANT LINE-SET ESTIMATE            Type:            {estimate["type"]}            Status:            {status}            Material:            {estimate["material"]}            Length from Plan:            {estimate["length"]} LF            Order Length:            {order_length}            Length Allowance:            {estimate["length_allowance_percent"]}%            Note:            Line-set diameter, insulation, fittings, routing, and installation            must match the approved HVAC drawings and equipment schedule.        """        if estimate.get("material_takeoff"):            report += "\n    MATERIAL TAKEOFF:\n"            for item in estimate["material_takeoff"]:                report += (                    f"\n    {item['item']}: "                    f"{item['quantity']} {item['unit']}\n"                )        return report
+class ReportGenerator:
+
+    def create_concrete_slab_report(self, estimate):
+
+        rebar = estimate.get("rebar")
+
+        report = f"""
+
+                    CONCRETE SLAB ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Build Type:
+            {estimate.get("build_type", "Not Specified")}
+
+            Material:
+            {estimate["material"]}
+
+            Dimensions:
+
+            Length:
+            {estimate["length"]} ft
+
+            Width:
+            {estimate["width"]} ft
+
+            Thickness:
+            {estimate["thickness_inches"]} inches
+
+            CONCRETE VOLUME:
+
+            Cubic Feet:
+            {estimate["cubic_feet"]} ft³
+
+            Cubic Yards:
+            {estimate["cubic_yards"]} yd³
+
+            Order Quantity:
+            {estimate["order_quantity"]} yd³
+
+            Waste:
+            {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("reinforced"):
+            report += """
+
+            REINFORCEMENT:
+
+            Status:
+            Reinforced Slab
+
+                """
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            report += """
+
+            REBAR:
+
+            Status:
+            Per approved structural plan
+
+                """
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+            direction_1 = schedule.get("direction_1") or {}
+            direction_2 = schedule.get("direction_2") or {}
+
+            report += f"""
+
+            REBAR:
+
+            Status:
+            Approved structural plan
+
+            Direction 1:
+            {direction_1.get("bar_size", "Not specified")}
+            ({direction_1.get("linear_feet", "Not specified")} LF)
+
+            Direction 2:
+            {direction_2.get("bar_size", "Not specified")}
+            ({direction_2.get("linear_feet", "Not specified")} LF)
+
+                """
+
+        if estimate.get("wire_mesh"):
+            report += """
+
+            WIRE MESH:
+
+            Included:
+            Yes
+
+                """
+
+        if estimate.get("vapor_barrier"):
+            report += """
+
+            VAPOR BARRIER:
+
+            Included:
+            Yes
+
+            Material:
+            6 mil Poly
+
+                """
+
+        if estimate.get("gravel_base"):
+            report += """
+
+            GRAVEL BASE:
+
+            Included:
+            Yes
+
+            Material:
+            Compacted Aggregate Base
+
+                """
+
+        if estimate.get("control_joints"):
+            report += """
+
+            CONTROL JOINTS:
+
+            Included:
+            Yes
+
+                """
+
+        if estimate.get("forms"):
+            report += """
+
+            FORMS:
+
+            Included:
+            Yes
+
+                """
+
+        if (
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n            REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n            {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        if estimate.get("material_takeoff"):
+            report += "\n            MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n            {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+        return report
+
+    def create_concrete_footing_report(self, estimate):
+
+        rebar = estimate.get("rebar")
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            rebar_display = "Per approved structural plan"
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+            main = schedule.get("main") or {}
+
+            rebar_display = (
+                f"Approved schedule - "
+                f"Footing bars: {main.get('bar_size', 'Not specified')} "
+                f"({main.get('linear_feet', 'Not specified')} LF)"
+            )
+
+        elif rebar:
+            rebar_display = str(rebar)
+
+        else:
+            rebar_display = "Not Included"
+
+        report = f"""
+
+                CONCRETE FOOTING ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Build Type:
+    {estimate.get("build_type", "Not Specified")}
+
+    Material:
+    {estimate["material"]}
+
+    DIMENSIONS:
+
+    Length:
+    {estimate["length"]} ft
+
+    Width:
+    {estimate["width"]} ft
+
+    Depth:
+    {estimate["depth_inches"]} inches
+
+    CONCRETE VOLUME:
+
+    Cubic Feet:
+    {estimate["cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    ASSEMBLY MATERIALS:
+
+    Reinforced:
+    {"Yes" if estimate.get("reinforced") else "No"}
+
+    Rebar:
+    {rebar_display}
+
+    Forms:
+    {"Included" if estimate.get("forms") else "Not Included"}
+
+    Gravel Base:
+    {"Included" if estimate.get("gravel_base") else "Not Included"}
+
+    Waste:
+    {estimate["waste_percent"]}%
+
+        """
+
+        if (
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n    REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n    {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_concrete_foundation_wall_report(self, estimate):
+
+        rebar = estimate.get("rebar")
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            rebar_display = "Per approved structural plan"
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+            vertical = schedule.get("vertical") or {}
+            horizontal = schedule.get("horizontal") or {}
+
+            rebar_display = (
+                f"Approved schedule - "
+                f"Vertical: {vertical.get('bar_size', 'Not specified')} "
+                f"({vertical.get('linear_feet', 'Not specified')} LF); "
+                f"Horizontal: {horizontal.get('bar_size', 'Not specified')} "
+                f"({horizontal.get('linear_feet', 'Not specified')} LF)"
+            )
+
+        elif rebar:
+            rebar_display = str(rebar)
+
+        else:
+            rebar_display = "Not Included"
+
+        report = f"""
+
+                CONCRETE FOUNDATION WALL ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Build Type:
+    {estimate.get("build_type", "Not Specified")}
+
+    Material:
+    {estimate["material"]}
+
+    DIMENSIONS:
+
+    Length:
+    {estimate["length"]} ft
+
+    Height:
+    {estimate["height"]} ft
+
+    Thickness:
+    {estimate["thickness_inches"]} inches
+
+    CONCRETE VOLUME:
+
+    Cubic Feet:
+    {estimate["cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    Waste:
+    {estimate["waste_percent"]}%
+
+    ASSEMBLY MATERIALS:
+
+    Reinforced:
+    {"Yes" if estimate.get("reinforced") else "No"}
+
+    Rebar:
+    {rebar_display}
+
+    Forms:
+    {"Included" if estimate.get("forms") else "Not Included"}
+
+    Waterproofing:
+    {"Included" if estimate.get("waterproofing") else "Not Included"}
+
+        """
+
+        if (
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n    REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n    {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_concrete_pad_report(self, estimate):
+
+        rebar = estimate.get("rebar")
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            rebar_display = "Per approved structural plan"
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+            direction_1 = schedule.get("direction_1") or {}
+            direction_2 = schedule.get("direction_2") or {}
+
+            rebar_display = (
+                f"Approved schedule - "
+                f"Direction 1: {direction_1.get('bar_size', 'Not specified')} "
+                f"({direction_1.get('linear_feet', 'Not specified')} LF); "
+                f"Direction 2: {direction_2.get('bar_size', 'Not specified')} "
+                f"({direction_2.get('linear_feet', 'Not specified')} LF)"
+            )
+
+        elif rebar:
+            rebar_display = str(rebar)
+
+        else:
+            rebar_display = "Not Included"
+
+        report = f"""
+
+                CONCRETE PAD ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Build Type:
+    {estimate.get("build_type", "Not Specified")}
+
+    Material:
+    {estimate["material"]}
+
+    DIMENSIONS:
+
+    Length:
+    {estimate["length"]} ft
+
+    Width:
+    {estimate["width"]} ft
+
+    Thickness:
+    {estimate["thickness_inches"]} inches
+
+    CONCRETE VOLUME:
+
+    Cubic Feet:
+    {estimate["cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    ASSEMBLY MATERIALS:
+
+    Reinforced:
+    {"Yes" if estimate.get("reinforced") else "No"}
+
+    Rebar:
+    {rebar_display}
+
+    Wire Mesh:
+    {"Included" if estimate.get("wire_mesh") else "Not Included"}
+
+    Vapor Barrier:
+    {"Included" if estimate.get("vapor_barrier") else "Not Included"}
+
+    Gravel Base:
+    {"Included" if estimate.get("gravel_base") else "Not Included"}
+
+    Control Joints:
+    {"Included" if estimate.get("control_joints") else "Not Included"}
+
+    Forms:
+    {"Included" if estimate.get("forms") else "Not Included"}
+
+    Waste:
+    {estimate["waste_percent"]}%
+
+        """
+
+        if (
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n    REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n    {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_concrete_pier_report(self, estimate):
+
+        rebar = estimate.get("rebar")
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            rebar_display = "Per approved structural plan"
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+            vertical = schedule.get("vertical") or {}
+            ties = schedule.get("ties") or {}
+
+            rebar_display = (
+                f"Approved schedule — "
+                f"Vertical: {vertical.get('bar_size', 'Not specified')} "
+                f"({vertical.get('linear_feet', 'Not specified')} LF); "
+                f"Ties: {ties.get('bar_size', 'Not specified')} "
+                f"({ties.get('linear_feet', 'Not specified')} LF)"
+            )
+
+        elif rebar:
+            rebar_display = str(rebar)
+
+        else:
+            rebar_display = "Not Included"
+
+        report = f"""
+
+                CONCRETE PIER ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Build Type:
+    {estimate.get("build_type", "Not Specified")}
+
+    Material:
+    {estimate["material"]}
+
+    PIER DETAILS:
+
+    Diameter:
+    {estimate["diameter_inches"]} inches
+
+    Height:
+    {estimate["height"]} ft
+
+    Quantity:
+    {estimate["quantity"]}
+
+    CONCRETE VOLUME:
+
+    Each Pier:
+    {estimate["cubic_feet_each"]} ft³
+
+    Total:
+    {estimate["total_cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    ASSEMBLY MATERIALS:
+
+    Reinforced:
+    {"Yes" if estimate.get("reinforced") else "No"}
+
+    Rebar:
+    {rebar_display}
+
+    Forms:
+    {"Included" if estimate.get("forms") else "Not Included"}
+
+    Gravel Base:
+    {"Included" if estimate.get("gravel_base") else "Not Included"}
+
+    Waste:
+    {estimate["waste_percent"]}%
+
+        """
+
+        if (
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n    REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n    {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_concrete_column_report(self, estimate):
+
+        rebar = estimate.get("rebar")
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            rebar_display = "Per approved structural plan"
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+
+            vertical = schedule.get("vertical") or {}
+            ties = schedule.get("ties") or {}
+
+            rebar_display = (
+                f"Approved schedule — "
+                f"Vertical: {vertical.get('bar_size', 'Not specified')} "
+                f"({vertical.get('linear_feet', 'Not specified')} LF); "
+                f"Ties: {ties.get('bar_size', 'Not specified')} "
+                f"({ties.get('linear_feet', 'Not specified')} LF)"
+            )
+
+        elif rebar:
+            rebar_display = str(rebar)
+
+        else:
+            rebar_display = "Not Included"
+
+        report = f"""
+
+                CONCRETE COLUMN ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Build Type:
+    {estimate.get("build_type", "Not Specified")}
+
+    Material:
+    {estimate["material"]}
+
+    COLUMN DETAILS:
+
+    Diameter:
+    {estimate["diameter_inches"]} inches
+
+    Height:
+    {estimate["height"]} ft
+
+    Quantity:
+    {estimate["quantity"]}
+
+    CONCRETE VOLUME:
+
+    Each Column:
+    {estimate["cubic_feet_each"]} ft³
+
+    Total:
+    {estimate["total_cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    ASSEMBLY MATERIALS:
+
+    Reinforced:
+    {"Yes" if estimate.get("reinforced") else "No"}
+
+    Rebar:
+    {rebar_display}
+
+    Forms:
+    {"Included" if estimate.get("forms") else "Not Included"}
+
+    Waste:
+    {estimate["waste_percent"]}%
+
+        """
+
+        if(
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n    REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n    {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_concrete_curb_report(self, estimate):
+
+        rebar = estimate.get("rebar")
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            rebar_display = "Per approved structural plan"
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+            main = schedule.get("main") or {}
+
+            rebar_display = (
+                f"Approved schedule - "
+                f"Curb bars: {main.get('bar_size', 'Not specified')} "
+                f"({main.get('linear_feet', 'Not specified')} LF)"
+            )
+
+        elif rebar:
+            rebar_display = str(rebar)
+
+        else:
+            rebar_display = "Not Included"
+
+        report = f"""
+
+                CONCRETE CURB ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Build Type:
+    {estimate.get("build_type", "Not Specified")}
+
+    Material:
+    {estimate["material"]}
+
+    CURB DETAILS:
+
+    Length:
+    {estimate["length"]} ft
+
+    Width:
+    {estimate["width_inches"]} inches
+
+    Height:
+    {estimate["height_inches"]} inches
+
+    CONCRETE VOLUME:
+
+    Cubic Feet:
+    {estimate["cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    ASSEMBLY MATERIALS:
+
+    Reinforced:
+    {"Yes" if estimate.get("reinforced") else "No"}
+
+    Rebar:
+    {rebar_display}
+
+    Forms:
+    {"Included" if estimate.get("forms") else "Not Included"}
+
+    Gravel Base:
+    {"Included" if estimate.get("gravel_base") else "Not Included"}
+
+    Waste:
+    {estimate["waste_percent"]}%
+
+    """
+
+        if (
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n    REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n    {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        return report
+
+    def create_concrete_sidewalk_report(self, estimate):
+
+        rebar = estimate.get("rebar")
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            rebar_display = "Per approved structural plan"
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+            main = schedule.get("main") or {}
+
+            rebar_display = (
+                f"Approved schedule - "
+                f"Sidewalk bars: {main.get('bar_size', 'Not specified')} "
+                f"({main.get('linear_feet', 'Not specified')} LF)"
+            )
+
+        elif rebar:
+            rebar_display = str(rebar)
+
+        else:
+            rebar_display = "Not Included"
+
+        report = f"""
+
+                CONCRETE SIDEWALK ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Build Type:
+    {estimate.get("build_type", "Not Specified")}
+
+    Material:
+    {estimate["material"]}
+
+    DIMENSIONS:
+
+    Length:
+    {estimate["length"]} ft
+
+    Width:
+    {estimate["width"]} ft
+
+    Thickness:
+    {estimate["thickness_inches"]} inches
+
+    CONCRETE VOLUME:
+
+    Cubic Feet:
+    {estimate["cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    ASSEMBLY MATERIALS:
+
+    Reinforced:
+    {"Yes" if estimate.get("reinforced") else "No"}
+
+    Rebar:
+    {rebar_display}
+
+    Wire Mesh:
+    {"Included" if estimate.get("wire_mesh") else "Not Included"}
+
+    Vapor Barrier:
+    {"Included" if estimate.get("vapor_barrier") else "Not Included"}
+
+    Gravel Base:
+    {"Included" if estimate.get("gravel_base") else "Not Included"}
+
+    Control Joints:
+    {"Included" if estimate.get("control_joints") else "Not Included"}
+
+    Forms:
+    {"Included" if estimate.get("forms") else "Not Included"}
+
+    Waste:
+    {estimate["waste_percent"]}%
+
+        """
+
+        if (
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n    REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n    {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_concrete_driveway_report(self, estimate):
+
+        rebar = estimate.get("rebar")
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            rebar_display = "Per approved structural plan"
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+            direction_1 = schedule.get("direction_1") or {}
+            direction_2 = schedule.get("direction_2") or {}
+
+            rebar_display = (
+                f"Approved schedule - "
+                f"Direction 1: {direction_1.get('bar_size', 'Not specified')} "
+                f"({direction_1.get('linear_feet', 'Not specified')} LF); "
+                f"Direction 2: {direction_2.get('bar_size', 'Not specified')} "
+                f"({direction_2.get('linear_feet', 'Not specified')} LF)"
+            )
+
+        elif rebar:
+            rebar_display = str(rebar)
+
+        else:
+            rebar_display = "Not Included"
+
+        report = f"""
+
+                CONCRETE DRIVEWAY ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Build Type:
+    {estimate.get("build_type", "Not Specified")}
+
+    Material:
+    {estimate["material"]}
+
+    DIMENSIONS:
+
+    Length:
+    {estimate["length"]} ft
+
+    Width:
+    {estimate["width"]} ft
+
+    Thickness:
+    {estimate["thickness_inches"]} inches
+
+    CONCRETE VOLUME:
+
+    Cubic Feet:
+    {estimate["cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    ASSEMBLY MATERIALS:
+
+    Reinforced:
+    {"Yes" if estimate.get("reinforced") else "No"}
+
+    Rebar:
+    {rebar_display}
+
+    Wire Mesh:
+    {"Included" if estimate.get("wire_mesh") else "Not Included"}
+
+    Vapor Barrier:
+    {"Included" if estimate.get("vapor_barrier") else "Not Included"}
+
+    Gravel Base:
+    {"Included" if estimate.get("gravel_base") else "Not Included"}
+
+    Control Joints:
+    {"Included" if estimate.get("control_joints") else "Not Included"}
+
+    Forms:
+    {"Included" if estimate.get("forms") else "Not Included"}
+
+    Waste:
+    {estimate["waste_percent"]}%
+
+        """
+
+        if (
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n    REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n    {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_concrete_patio_report(self, estimate):
+
+        rebar = estimate.get("rebar")
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            rebar_display = "Per approved structural plan"
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+            direction_1 = schedule.get("direction_1") or {}
+            direction_2 = schedule.get("direction_2") or {}
+
+            rebar_display = (
+                f"Approved schedule - "
+                f"Direction 1: {direction_1.get('bar_size', 'Not specified')} "
+                f"({direction_1.get('linear_feet', 'Not specified')} LF); "
+                f"Direction 2: {direction_2.get('bar_size', 'Not specified')} "
+                f"({direction_2.get('linear_feet', 'Not specified')} LF)"
+            )
+
+        elif rebar:
+            rebar_display = str(rebar)
+
+        else:
+            rebar_display = "Not Included"
+
+        report = f"""
+
+                CONCRETE PATIO ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Build Type:
+    {estimate.get("build_type", "Not Specified")}
+
+    Material:
+    {estimate["material"]}
+
+    DIMENSIONS:
+
+    Length:
+    {estimate["length"]} ft
+
+    Width:
+    {estimate["width"]} ft
+
+    Thickness:
+    {estimate["thickness_inches"]} inches
+
+    CONCRETE VOLUME:
+
+    Cubic Feet:
+    {estimate["cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    ASSEMBLY MATERIALS:
+
+    Reinforced:
+    {"Yes" if estimate.get("reinforced") else "No"}
+
+    Rebar:
+    {rebar_display}
+
+    Wire Mesh:
+    {"Included" if estimate.get("wire_mesh") else "Not Included"}
+
+    Vapor Barrier:
+    {"Included" if estimate.get("vapor_barrier") else "Not Included"}
+
+    Gravel Base:
+    {"Included" if estimate.get("gravel_base") else "Not Included"}
+
+    Control Joints:
+    {"Included" if estimate.get("control_joints") else "Not Included"}
+
+    Forms:
+    {"Included" if estimate.get("forms") else "Not Included"}
+
+    Waste:
+    {estimate["waste_percent"]}%
+
+        """
+
+        if (
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n    REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n    {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_concrete_steps_report(self, estimate):
+
+        rebar = estimate.get("rebar")
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            rebar_display = "Per approved structural plan"
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+            main = schedule.get("main") or {}
+
+            rebar_display = (
+                f"Approved schedule - "
+                f"Step reinforcement: {main.get('bar_size', 'Not specified')} "
+                f"({main.get('linear_feet', 'Not specified')} LF)"
+            )
+
+        elif rebar:
+            rebar_display = str(rebar)
+
+        else:
+            rebar_display = "Not Included"
+
+        report = f"""
+
+                CONCRETE STEPS ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Build Type:
+    {estimate.get("build_type", "Not Specified")}
+
+    Material:
+    {estimate["material"]}
+
+    STEP DETAILS:
+
+    Width:
+    {estimate["width"]} ft
+
+    Tread Depth:
+    {estimate["tread_depth_inches"]} inches
+
+    Riser Height:
+    {estimate["riser_height_inches"]} inches
+
+    Number of Steps:
+    {estimate["steps"]}
+
+    CONCRETE VOLUME:
+
+    Cubic Feet:
+    {estimate["cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    ASSEMBLY MATERIALS:
+
+    Reinforced:
+    {"Yes" if estimate.get("reinforced") else "No"}
+
+    Rebar:
+    {rebar_display}
+
+    Gravel Base:
+    {"Included" if estimate.get("gravel_base") else "Not Included"}
+
+    Vapor Barrier:
+    {"Included" if estimate.get("vapor_barrier") else "Not Included"}
+
+    Forms:
+    {"Included" if estimate.get("forms") else "Not Included"}
+
+    Waste:
+    {estimate["waste_percent"]}%
+
+    """
+
+        if (
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n    REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n    {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        return report
+
+    def create_concrete_beam_report(self, estimate):
+
+        rebar = estimate.get("rebar")
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            rebar_display = "Per approved structural plan"
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+            main = schedule.get("main") or {}
+            stirrups = schedule.get("stirrups") or {}
+
+            rebar_display = (
+                f"Approved schedule - "
+                f"Main: {main.get('bar_size', 'Not specified')} "
+                f"({main.get('linear_feet', 'Not specified')} LF); "
+                f"Stirrups: {stirrups.get('bar_size', 'Not specified')} "
+                f"({stirrups.get('linear_feet', 'Not specified')} LF)"
+            )
+
+        elif rebar:
+            rebar_display = str(rebar)
+
+        else:
+            rebar_display = "Not Included"
+
+        report = f"""
+
+                CONCRETE BEAM ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Build Type:
+    {estimate.get("build_type", "Not Specified")}
+
+    Material:
+    {estimate["material"]}
+
+    DIMENSIONS:
+
+    Length:
+    {estimate["length"]} ft
+
+    Width:
+    {estimate["width_inches"]} inches
+
+    Height:
+    {estimate["height_inches"]} inches
+
+    CONCRETE VOLUME:
+
+    Cubic Feet:
+    {estimate["cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    STRUCTURAL MATERIALS:
+
+    Reinforced:
+    {"Yes" if estimate.get("reinforced") else "No"}
+
+    Rebar:
+    {rebar_display}
+
+    Forms:
+    {"Included" if estimate.get("forms") else "Not Included"}
+
+    Waste:
+    {estimate["waste_percent"]}%
+
+    """
+        if (
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n    REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n    {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        return report
+
+    def create_concrete_ramp_report(self, estimate):
+
+        rebar = estimate.get("rebar")
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            rebar_display = "Per approved structural plan"
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+            direction_1 = schedule.get("direction_1") or {}
+            direction_2 = schedule.get("direction_2") or {}
+
+            rebar_display = (
+                f"Approved schedule - "
+                f"Direction 1: {direction_1.get('bar_size', 'Not specified')} "
+                f"({direction_1.get('linear_feet', 'Not specified')} LF); "
+                f"Direction 2: {direction_2.get('bar_size', 'Not specified')} "
+                f"({direction_2.get('linear_feet', 'Not specified')} LF)"
+            )
+
+        elif rebar:
+            rebar_display = str(rebar)
+
+        else:
+            rebar_display = "Not Included"
+
+        report=f"""
+
+                CONCRETE RAMP ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Build Type:
+    {estimate.get("build_type", "Not Specified")}
+
+    Material:
+    {estimate["material"]}
+
+    DIMENSIONS:
+
+    Length:
+    {estimate["length"]} ft
+
+    Width:
+    {estimate["width"]} ft
+
+    Height:
+    {estimate["height_inches"]} inches
+
+    CONCRETE VOLUME:
+
+    Cubic Feet:
+    {estimate["cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    ASSEMBLY MATERIALS:
+
+    Reinforced:
+    {"Yes" if estimate.get("reinforced") else "No"}
+
+    Rebar:
+    {rebar_display}
+
+    Gravel Base:
+    {"Included" if estimate.get("gravel_base") else "Not Included"}
+
+    Forms:
+    {"Included" if estimate.get("forms") else "Not Included"}
+
+    Waste:
+    {estimate["waste_percent"]}%
+
+    """
+
+        if (
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n    REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n    {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        return report
+
+    def create_concrete_trench_report(self, estimate):
+        return f"""
+
+                CONCRETE TRENCH ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Material:
+            {estimate["material"]}
+
+            Dimensions:
+
+            Length:
+            {estimate["length"]} ft
+
+            Width:
+            {estimate["width_inches"]} inches
+
+            Depth:
+            {estimate["depth_inches"]} inches
+
+            Concrete Volume:
+
+            Cubic Feet:
+            {estimate["cubic_feet"]} ft³
+
+            Cubic Yards:
+            {estimate["cubic_yards"]} yd³
+
+            Order Quantity:
+            {estimate["order_quantity"]} yd³
+
+            Waste:
+            {estimate["waste_percent"]}%
+            
+                            STRUCTURAL DESIGN:
+
+                Reinforcement:
+                Per approved structural plan
+
+                This estimate includes concrete quantity only.
+
+        """
+
+    def create_concrete_retaining_wall_report(self, estimate):
+        return f"""
+
+                CONCRETE RETAINING WALL ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Material:
+            {estimate["material"]}
+
+            Dimensions:
+
+            Length:
+            {estimate["length"]} ft
+
+            Height:
+            {estimate["height"]} ft
+
+            Thickness:
+            {estimate["thickness_inches"]} inches
+
+            Concrete Volume:
+
+            Cubic Feet:
+            {estimate["cubic_feet"]} ft³
+
+            Cubic Yards:
+            {estimate["cubic_yards"]} yd³
+
+            Order Quantity:
+            {estimate["order_quantity"]} yd³
+
+            Waste:
+            {estimate["waste_percent"]}%
+            
+                        STRUCTURAL DESIGN:
+
+            Reinforcement:
+            Per approved engineered design
+
+            Footing and Drainage:
+            Not included in this concrete-volume estimate
+
+        """
+
+    def create_concrete_grade_beam_report(self, estimate):
+        rebar = estimate.get("rebar")
+
+        if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
+            rebar_display = "Per approved structural plan"
+
+        elif isinstance(rebar, dict) and rebar.get("status") == "specified":
+            schedule = rebar.get("schedule") or {}
+            main = schedule.get("main") or {}
+            stirrups = schedule.get("stirrups") or {}
+
+            rebar_display = (
+                f"Approved schedule - "
+                f"Main: {main.get('bar_size', 'Not specified')} "
+                f"({main.get('linear_feet', 'Not specified')} LF); "
+                f"Stirrups: {stirrups.get('bar_size', 'Not specified')} "
+                f"({stirrups.get('linear_feet', 'Not specified')} LF)"
+            )
+
+        else:
+            rebar_display = "Not Included"
+
+        report = f"""
+
+                CONCRETE GRADE BEAM ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Build Type:
+    {estimate.get("build_type", "Not Specified")}
+
+    Material:
+    {estimate["material"]}
+
+    DIMENSIONS:
+
+    Length:
+    {estimate["length"]} ft
+
+    Width:
+    {estimate["width_inches"]} inches
+
+    Height:
+    {estimate["height_inches"]} inches
+
+    CONCRETE VOLUME:
+
+    Cubic Feet:
+    {estimate["cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    ASSEMBLY MATERIALS:
+
+    Reinforced:
+    {"Yes" if estimate.get("reinforced") else "No"}
+
+    Rebar:
+    {rebar_display}
+
+    Forms:
+    {"Included" if estimate.get("forms") else "Not Included"}
+
+    Waste:
+    {estimate["waste_percent"]}%
+        """
+
+        if (
+            isinstance(rebar, dict)
+            and rebar.get("status") == "specified"
+            and rebar.get("takeoff")
+        ):
+            report += "\n    REBAR TAKEOFF:\n"
+
+            for item in rebar["takeoff"]:
+                report += (
+                    f"\n    {item['size']}: "
+                    f"{item['total_linear_feet']} LF, "
+                    f"{item['sticks']} sticks, "
+                    f"{item['weight_lbs']} lbs\n"
+                )
+
+        return report
+
+    def create_concrete_spread_footing_report(self, estimate):
+        report = f"""
+
+                CONCRETE SPREAD FOOTING ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Material:
+    {estimate["material"]}
+
+    DIMENSIONS:
+
+    Length:
+    {estimate["length"]} ft
+
+    Width:
+    {estimate["width"]} ft
+
+    Depth:
+    {estimate["depth_inches"]} inches
+
+    CONCRETE VOLUME:
+
+    Cubic Feet:
+    {estimate["cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    Waste:
+    {estimate["waste_percent"]}%
+    
+        STRUCTURAL DESIGN:
+
+    Reinforcement and bearing requirements:
+    Per approved structural plan
+
+    This estimate includes concrete quantity only.
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_concrete_round_footing_report(self, estimate):
+        report = f"""
+
+                CONCRETE ROUND FOOTING ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Material:
+    {estimate["material"]}
+
+    FOOTING DETAILS:
+
+    Diameter:
+    {estimate["diameter_inches"]} inches
+
+    Depth:
+    {estimate["depth"]} ft
+
+    Quantity:
+    {estimate["quantity"]}
+
+    CONCRETE VOLUME:
+
+    Each Footing:
+    {estimate["cubic_feet_each"]} ft³
+
+    Total:
+    {estimate["total_cubic_feet"]} ft³
+
+    Cubic Yards:
+    {estimate["cubic_yards"]} yd³
+
+    Order Quantity:
+    {estimate["order_quantity"]} yd³
+
+    Waste:
+    {estimate["waste_percent"]}%
+    
+        STRUCTURAL DESIGN:
+
+    Reinforcement and bearing requirements:
+    Per approved structural plan
+
+    This estimate includes concrete quantity only.
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_concrete_pile_cap_report(self, estimate):
+        return f"""
+
+                CONCRETE PILE CAP ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Material:
+            {estimate["material"]}
+
+            Dimensions:
+
+            Length:
+            {estimate["length"]} ft
+
+            Width:
+            {estimate["width"]} ft
+
+            Depth:
+            {estimate["depth_inches"]} inches
+
+            Concrete Volume:
+
+            Cubic Feet:
+            {estimate["cubic_feet"]} ft³
+
+            Cubic Yards:
+            {estimate["cubic_yards"]} yd³
+
+            Order Quantity:
+            {estimate["order_quantity"]} yd³
+
+            Waste:
+            {estimate["waste_percent"]}%
+            
+                        STRUCTURAL DESIGN:
+
+            Reinforcement:
+            Per approved structural plan
+
+            Pile layout, connections, and foundation design:
+            Not included in this concrete-volume estimate
+
+        """
+
+    def create_concrete_lintel_report(self, estimate):
+        return f"""
+
+                CONCRETE LINTEL ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Material:
+            {estimate["material"]}
+
+            Dimensions:
+
+            Length:
+            {estimate["length"]} ft
+
+            Width:
+            {estimate["width_inches"]} inches
+
+            Height:
+            {estimate["height_inches"]} inches
+
+            Concrete Volume:
+
+            Cubic Feet:
+            {estimate["cubic_feet"]} ft³
+
+            Cubic Yards:
+            {estimate["cubic_yards"]} yd³
+
+            Order Quantity:
+            {estimate["order_quantity"]} yd³
+
+            Waste:
+            {estimate["waste_percent"]}%
+            
+                        STRUCTURAL DESIGN:
+
+            Reinforcement:
+            Per approved structural plan
+
+            Bearing, span, and connection requirements:
+            Not included in this concrete-volume estimate
+
+        """
+
+    def create_concrete_slab_edge_report(self, estimate):
+        report = f"""
+
+            THICKENED CONCRETE SLAB EDGE ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        SLAB FOOTPRINT:
+
+        Length:
+        {estimate["length"]} ft
+
+        Width:
+        {estimate["width"]} ft
+
+        Perimeter:
+        {estimate["perimeter_lf"]} LF
+
+        THICKENED EDGE DETAILS:
+
+        Edge Width:
+        {estimate["edge_width_inches"]} inches
+
+        Edge Depth:
+        {estimate["edge_depth_inches"]} inches
+
+        Edge Area:
+        {estimate["edge_area_sqft"]} sq ft
+
+        CONCRETE VOLUME:
+
+        Cubic Feet:
+        {estimate["cubic_feet"]} ft³
+
+        Cubic Yards:
+        {estimate["cubic_yards"]} yd³
+
+        Order Quantity:
+        {estimate["order_quantity"]} yd³
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+        Note:
+        This is the perimeter thickened-edge quantity only. Reinforcement,
+        edge dimensions, and structural design must follow approved plans.
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+                ################
+                #### LUMBER ####
+                ################
+
+    def create_frame_wall_report(self, estimate):
+        return f"""
+            FRAMED WALL ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Dimensions:
+    {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["height"]} ft
+
+    Identical Walls:
+    {estimate.get("quantity", 1)}
+    
+    Studs:
+    {estimate["studs"]["quantity"]} - {estimate["studs"]["size"]} studs
+
+    Stud Length:
+    {estimate["studs"]["length"]}
+
+    Plates:
+    {estimate["plates"]["quantity"]} - {estimate["plates"]["size"]} x {estimate["plates"]["length"]}
+    
+    Waste:
+    {estimate["waste_percent"]}%
+    """
+
+    def create_frame_wall_with_openings_report(
+            self,
+            estimate
+    ):
+        opening_lines = "\n".join(
+            (
+                f"- {opening['type'].title()}: "
+                f"{opening['width_feet']} ft x "
+                f"{opening['height_feet']} ft"
+            )
+            for opening in estimate["openings"]
+        )
+
+        takeoff_lines = "\n".join(
+            (
+                f"- {item['item']}: "
+                f"{item['quantity']} {item['unit']}"
+            )
+            for item in estimate["material_takeoff"]
+        )
+
+        return (
+            "\n"
+            "            FRAMED WALL WITH OPENINGS ESTIMATE\n\n"
+            f"    Wall Size: "
+            f"{estimate['dimensions']['length']} ft x "
+            f"{estimate['dimensions']['height']} ft\n"
+            f"    Identical Walls: {estimate['quantity']}\n"
+            f"    Stud Spacing: "
+            f"{estimate['stud_spacing_inches']} in OC\n\n"
+            "    OPENINGS:\n\n"
+            f"{opening_lines}\n\n"
+            "    FRAMING TAKEOFF:\n\n"
+            f"    Stud Length: {estimate['stud_length']}\n"
+            f"    Field Studs per Wall: "
+            f"{estimate['field_studs_per_wall']}\n"
+            f"    King Studs per Wall: "
+            f"{estimate['king_studs_per_wall']}\n"
+            f"    Jack Studs per Wall: "
+            f"{estimate['jack_studs_per_wall']}\n"
+            f"    Header Specification: "
+            f"{estimate['header_spec']}\n"
+            f"    Net Wall Area: "
+            f"{estimate['net_wall_area_sqft']} sq ft\n"
+            f"    Waste: {estimate['waste_percent']}%\n\n"
+            "    MATERIAL TAKEOFF:\n\n"
+            f"{takeoff_lines}\n\n"
+            f"    Note: {estimate['structural_note']}\n"
+        )
+
+    def create_floor_joists_report(self, estimate):
+        spacing = estimate["spacing"]
+
+        if isinstance(spacing, (int, float)):
+            spacing_display = f"{spacing} inches OC"
+        else:
+            spacing_display = spacing
+
+        report = f"""
+             FLOOR JOIST ESTIMATE
+
+     Type:
+     {estimate["type"]}
+
+     Status:
+     {"Approved plan specified" if estimate.get("status") == "specified" else "Approved framing plan required"}
+
+     Dimensions:
+     {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft
+
+     Joists:
+     {estimate["joists"]["quantity"]} - {estimate["joists"]["size"]} x {estimate["joists"]["length"]}
+
+     Spacing:
+     {spacing_display}
+
+     Waste:
+     {estimate["waste_percent"]}%
+     """
+
+        if estimate.get("material_takeoff"):
+            report += "\n     MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n     {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_ceiling_joists_report(self, estimate):
+        spacing = estimate["spacing"]
+
+        if isinstance(spacing, (int, float)):
+            spacing_display = f"{spacing} inches OC"
+        else:
+            spacing_display = spacing
+
+        report = f"""
+            CEILING JOIST ESTIMATE
+
+    Type:
+    {estimate["type"]}
+
+    Status:
+    {"Approved plan specified" if estimate.get("status") == "specified" else "Approved framing plan required"}
+
+    Dimensions:
+    {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft
+
+    Joists:
+    {estimate["joists"]["quantity"]} - {estimate["joists"]["size"]} x {estimate["joists"]["length"]}
+
+    Spacing:
+    {spacing_display}
+
+    Waste:
+    {estimate["waste_percent"]}%
+    """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_rafter_report(self, estimate):
+        spacing = estimate["spacing"]
+
+        if isinstance(spacing, (int, float)):
+            spacing_display = f"{spacing} inches OC"
+        else:
+            spacing_display = spacing
+
+        report = f"""
+                ROOF RAFTER ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {"Approved plan specified" if estimate.get("status") == "specified" else "Approved framing plan required"}
+
+        Roof Span:
+        {estimate["span"]} ft
+
+        Roof Length:
+        {estimate["roof_length"]} ft
+
+        Pitch:
+        {estimate["pitch"]}
+
+        Calculated Rafter Line Length:
+        {estimate["rafter_length"]} ft
+
+        Rafters:
+        {estimate["rafters"]["quantity"]} - {estimate["rafters"]["size"]} x {estimate["rafters"]["length"]}
+
+        Spacing:
+        {spacing_display}
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_ridge_board_report(self, estimate):
+        report = f"""
+                RIDGE BOARD ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {"Approved plan specified" if estimate.get("status") == "specified" else "Approved framing plan required"}
+
+        Ridge Length:
+        {estimate["length"]} ft
+
+        Ridge Board:
+        {estimate["ridge_board"]["quantity"]} - {estimate["ridge_board"]["size"]} x {estimate["ridge_board"]["length"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_collar_ties_report(self, estimate):
+        spacing = estimate["spacing"]
+
+        if isinstance(spacing, (int, float)):
+            spacing_display = f"{spacing} inches OC"
+        else:
+            spacing_display = spacing
+
+        report = f"""
+                COLLAR TIE ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {"Approved plan specified" if estimate.get("status") == "specified" else "Approved framing plan required"}
+
+        Roof Length:
+        {estimate["roof_length"]} ft
+
+        Collar Ties:
+        {estimate["collar_ties"]["quantity"]} - {estimate["collar_ties"]["size"]} x {estimate["collar_ties"]["length"]}
+
+        Spacing:
+        {spacing_display}
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_roof_sheathing_report(self, estimate):
+        report = f"""
+                ROOF SHEATHING ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Building Footprint:
+        {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft
+
+        Roof Type:
+        {estimate.get("roof_type", "gable").title()}
+
+        Pitch:
+        {estimate.get("pitch_rise", 6)}/12
+
+        Overhang:
+        {estimate.get("overhang_inches", 12)} inches
+
+        Roof Planes:
+        {estimate.get("roof_plane_count", 2)}
+
+        Calculated Roof Surface:
+        {estimate["area"]} sq ft
+
+        Material:
+        {estimate["material"]["quantity"]} - {estimate["material"]["size"]} {estimate["material"]["type"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_wall_sheathing_report(self, estimate):
+        report = f"""
+                WALL SHEATHING ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Dimensions:
+        {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["height"]} ft
+
+        Area:
+        {estimate["area"]} sq ft
+
+        Material:
+        {estimate["material"]["quantity"]} - {estimate["material"]["size"]} {estimate["material"]["type"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_header_report(self, estimate):
+        report = f"""
+                HEADER ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Opening Width:
+        {estimate["opening_width"]} ft
+
+        Header Status:
+        {"Approved plan specified" if estimate.get("status") == "specified" else "Approved structural plan required"}
+
+        Material:
+        {estimate["material"]}
+
+        Header:
+        {estimate["header"]["quantity"]} - {estimate["header"]["size"]} x {estimate["header"]["length"]}
+
+        Plies:
+        {estimate["plies"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_blocking_report(self, estimate):
+        report = f"""
+                BLOCKING ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Wall Length:
+        {estimate["wall_length"]} ft
+
+        Rows:
+        {estimate["rows"]}
+
+        Blocking:
+        {estimate["blocking"]["quantity"]} - {estimate["blocking"]["size"]} x {estimate["blocking"]["length"]}
+
+        Spacing:
+        {estimate["spacing"]} inches OC
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_plate_report(self, estimate):
+        report = f"""
+
+                WALL PLATE ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Material:
+            {estimate["material"]}
+
+            Plate Type:
+            {estimate["plate_type"]}
+
+            Linear Feet:
+            {estimate["linear_feet"]}
+
+            20 ft Boards:
+            {estimate["boards"]}
+
+            Waste:
+            {estimate["waste_percent"]} %
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n            MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n            {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_subfloor_sheathing_report(self, estimate):
+        report = f"""
+                SUBFLOOR SHEATHING ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Dimensions:
+        {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft
+
+        Area:
+        {estimate["area"]} sq ft
+
+        Material:
+        {estimate["material"]["quantity"]} - {estimate["material"]["size"]}
+        {estimate["material"]["thickness"]} {estimate["material"]["type"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_rim_joists_report(self, estimate):
+        report = f"""
+                RIM JOIST ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {"Approved plan specified" if estimate.get("status") == "specified" else "Approved framing plan required"}
+
+        Dimensions:
+        {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft
+
+        Perimeter:
+        {estimate["perimeter"]} linear feet
+
+        Rim Joists:
+        {estimate["rim_joists"]["quantity"]} - {estimate["rim_joists"]["size"]} x {estimate["rim_joists"]["length"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_shingle_report(self, estimate):
+        report = f"""
+                SHINGLE ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Building Footprint:
+        {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft
+
+        Roof Type:
+        {estimate.get("roof_type", "gable").title()}
+
+        Pitch:
+        {estimate.get("pitch_rise", 6)}/12
+
+        Overhang:
+        {estimate.get("overhang_inches", 12)} inches
+
+        Calculated Roof Surface:
+        {estimate["area"]} sq ft
+
+        Roofing Squares:
+        {estimate["squares"]}
+
+        Material:
+        {estimate["shingles"]["bundles"]} bundles
+        Asphalt Shingles
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_underlayment_report(self, estimate):
+        report = f"""
+                ROOF UNDERLAYMENT ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Building Footprint:
+        {estimate["dimensions"]["length"]} ft x {estimate["dimensions"]["width"]} ft
+
+        Roof Type:
+        {estimate.get("roof_type", "gable").title()}
+
+        Pitch:
+        {estimate.get("pitch_rise", 6)}/12
+
+        Overhang:
+        {estimate.get("overhang_inches", 12)} inches
+
+        Calculated Roof Surface:
+        {estimate["area"]} sq ft
+
+        Material:
+        {estimate["material"]["rolls"]} rolls
+        {estimate["material"]["type"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_drip_edge_report(self, estimate):
+        report = f"""
+                DRIP EDGE ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Required Length:
+        {estimate["required_length"]} linear feet
+
+        Order Length:
+        {estimate["total_length"]} linear feet
+
+        Material:
+        {estimate["material"]["quantity"]} - {estimate["material"]["size"]} drip-edge pieces
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_ice_water_report(self, estimate):
+        report = f"""
+                ICE & WATER SHIELD ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Required Coverage:
+        {estimate["required_coverage_sqft"]} sq ft
+
+        Coverage with Waste:
+        {estimate["area_with_waste"]} sq ft
+
+        Material:
+        {estimate["material"]["rolls"]} rolls
+        {estimate["material"]["type"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_ridge_vent_report(self, estimate):
+        report = f"""
+                RIDGE VENT ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Required Length:
+        {estimate["length"]} linear feet
+
+        Material:
+        {estimate["material"]["quantity"]} - {estimate["material"]["size"]} ridge-vent sections
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_flashing_report(self, estimate):
+        report = f"""
+                FLASHING ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Locations:
+        {estimate["locations"]}
+
+        Material:
+        {estimate["material"]["quantity"]}
+        {estimate["material"]["type"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n        MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n        {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_studs_report(self, estimate):
+        report = f"""
+
+                WALL STUD ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Material:
+            {estimate["material"]}
+
+            Wall Dimensions:
+            {estimate["wall_length"]} ft x {estimate["wall_height"]} ft
+
+            Spacing:
+            {estimate["spacing"]}
+
+            Stud Length:
+            {estimate["stud_length"]}
+
+            Studs Required:
+            {estimate["quantity"]}
+
+            Order Quantity:
+            {estimate["total_quantity"]}
+
+            Waste:
+            {estimate["waste_percent"]} %
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n            MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n            {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_king_studs_report(self, estimate):
+        return f"""
+
+                KING STUD ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Material:
+            {estimate["material"]}
+
+            Openings:
+            {estimate["openings"]}
+
+            Wall Height:
+            {estimate["wall_height"]} ft
+
+            Stud Length:
+            {estimate["stud_length"]}
+
+            Required:
+            {estimate["quantity"]} King Studs
+
+            Order Quantity:
+            {estimate["total_quantity"]} King Studs
+
+            Waste:
+            {estimate["waste_percent"]} %
+
+        """
+
+    def create_jack_studs_report(self, estimate):
+        report = f"""
+
+                JACK STUD ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Material:
+            {estimate["material"]}
+
+            Openings:
+            {estimate["openings"]}
+
+            Opening Height:
+            {estimate["opening_height"]} ft
+
+            Stud Length:
+            {estimate["stud_length"]}
+
+            Required:
+            {estimate["quantity"]} Jack Studs
+
+            Order Quantity:
+            {estimate["total_quantity"]} Jack Studs
+
+            Waste:
+            {estimate["waste_percent"]} %
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n            MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n            {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_cripple_studs_report(self, estimate):
+        report = f"""
+
+                CRIPPLE STUD ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Material:
+            {estimate["material"]}
+
+            Openings:
+            {estimate["openings"]}
+
+            Opening Width:
+            {estimate["opening_width"]} ft
+
+            Spacing:
+            {estimate["spacing"]}
+
+            Required:
+            {estimate["quantity"]} Cripple Studs
+
+            Order Quantity:
+            {estimate["total_quantity"]} Cripple Studs
+
+            Waste:
+            {estimate["waste_percent"]} %
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n            MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n            {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_corner_posts_report(self, estimate):
+        report = f"""
+
+                CORNER POST ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Material:
+            {estimate["material"]}
+
+            Corners:
+            {estimate["corners"]}
+
+            Wall Height:
+            {estimate["wall_height"]} ft
+
+            Stud Length:
+            {estimate["stud_length"]}
+
+            Required:
+            {estimate["quantity"]} Corner Posts
+
+            Order Quantity:
+            {estimate["total_quantity"]} Corner Posts
+
+            Waste:
+            {estimate["waste_percent"]} %
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n            MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n            {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_sill_plate_report(self, estimate):
+        report = f"""
+
+                SILL PLATE ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Material:
+            {estimate["material"]}
+
+            Foundation Length:
+            {estimate["length"]} ft
+
+            Order Length:
+            {estimate["total_length"]} ft
+
+            20 ft Boards:
+            {estimate["boards"]}
+
+            Waste:
+            {estimate["waste_percent"]} %
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n            MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n            {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_post_report(self, estimate):
+        report = f"""
+
+                POST ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Status:
+            {"Approved plan specified" if estimate.get("status") == "specified" else "Approved structural plan required"}
+
+            Material:
+            {estimate["material"]}
+
+            Quantity:
+            {estimate["quantity"]}
+
+            Order Quantity:
+            {estimate["total_quantity"]}
+
+            Height:
+            {estimate["height"]} ft
+
+            Post Length:
+            {estimate["post_length"]}
+
+            Waste:
+            {estimate["waste_percent"]} %
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n            MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n            {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_beam_report(self, estimate):
+        report = f"""
+
+                BEAM ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Status:
+            {"Approved plan specified" if estimate.get("status") == "specified" else "Approved structural plan required"}
+
+            Material:
+            {estimate["material"]}
+
+            Beam Length:
+            {estimate["length"]} ft
+
+            Members:
+            {estimate["plies"]}
+
+            Total Linear Feet:
+            {estimate["linear_feet"]}
+
+            Order Quantity:
+            {estimate["boards"]}
+
+            Waste:
+            {estimate["waste_percent"]} %
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n            MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n            {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    #################
+    #### DRYWALL ####
+    #################
+
+    def create_wall_drywall_report(self, estimate):
+        report = f"""
+
+            WALL DRYWALL ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Dimensions:
+        {estimate["length"]} ft x {estimate["height"]} ft
+        
+        Identical Wall Sections:
+        {estimate.get("quantity", 1)}
+
+        Area:
+        {estimate["area"]} sq ft
+
+        Material:
+        {estimate["sheets"]} - 4x8 Drywall Sheets
+
+        Waste:
+        {estimate["waste_percent"]} %
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_ceiling_drywall_report(self, estimate):
+        report = f"""
+
+                CEILING DRYWALL ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Dimensions:
+            {estimate["length"]} ft x {estimate["width"]} ft
+
+            Area:
+            {estimate["area"]} sq ft
+
+            Material:
+            {estimate["sheets"]} - 4x8 Drywall Sheets
+
+            Waste:
+            {estimate["waste_percent"]} %
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    ####################
+    #### INSULATION ####
+    ####################
+
+    def create_batt_insulation_report(self, estimate):
+        report = f"""
+
+                    BATT INSULATION ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        R-Value:
+        {estimate["r_value"]}
+
+        Stud Spacing:
+        {estimate["stud_spacing"]} inches OC
+
+        Dimensions:
+        {estimate["length"]} ft x {estimate["height"]} ft
+        
+        Identical Wall Sections:
+        {estimate.get("quantity", 1)}
+
+        Area:
+        {estimate["area"]:.1f} sq ft
+
+        Individual Batts:
+        {estimate["batts"]}
+
+        Bundles to Order:
+        {estimate["bundles"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_blown_insulation_report(self, estimate):
+        report = f"""
+
+                    BLOWN-IN INSULATION ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        R-Value:
+        {estimate["r_value"]}
+
+        Dimensions:
+        {estimate["length"]} ft x {estimate["width"]} ft
+
+        Area:
+        {estimate["area"]:.1f} sq ft
+
+        Coverage Per Bag:
+        {estimate["coverage_per_bag"]} sq ft
+
+        Bags to Order:
+        {estimate["bags"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_spray_foam_report(self, estimate):
+        report = f"""
+
+                    SPRAY FOAM INSULATION ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        R-Value:
+        {estimate["r_value"]}
+
+        Dimensions:
+        {estimate["length"]} ft x {estimate["height"]} ft
+
+        Area:
+        {estimate["area"]:.1f} sq ft
+
+        Thickness:
+        {estimate["thickness_inches"]} inches
+
+        Coverage Per Kit at That Thickness:
+        {estimate["coverage_per_kit_sqft"]} sq ft
+
+        Kits to Order:
+        {estimate["kits"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    ##############################
+    #### DRYWALL FINISH/PAINT ####
+    ##############################
+
+    def create_joint_compound_report(self, estimate):
+        report = f"""
+
+                    JOINT COMPOUND ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        Area:
+        {estimate["area"]:.1f} sq ft
+
+        Coverage Per Bucket:
+        {estimate["coverage_per_bucket"]} sq ft
+
+        Buckets to Order:
+        {estimate["buckets"]} - 5 Gallon Buckets
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_drywall_tape_report(self, estimate):
+        report = f"""
+
+                    DRYWALL TAPE ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        Area:
+        {estimate["area"]:.1f} sq ft
+
+        Coverage Per Roll:
+        {estimate["coverage_per_roll"]} sq ft
+
+        Rolls to Order:
+        {estimate["rolls"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_corner_bead_report(self, estimate):
+        report = f"""
+
+                    CORNER BEAD ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        Total Outside-Corner Length:
+        {estimate["length"]} LF
+
+        Piece Length:
+        {estimate["piece_length"]} ft
+
+        Pieces to Order:
+        {estimate["pieces"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_drywall_screws_report(self, estimate):
+        report = f"""
+
+                    DRYWALL SCREW ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        Area:
+        {estimate["area"]:.1f} sq ft
+
+        Drywall Sheets:
+        {estimate["sheets"]}
+
+        Screws Per Sheet:
+        {estimate["screws_per_sheet"]}
+
+        Total Screws:
+        {estimate["screws"]}
+
+        Box Size:
+        {estimate["screws_per_box"]} screws
+
+        Boxes to Order:
+        {estimate["boxes"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_drywall_sanding_report(self, estimate):
+        report = f"""
+
+                    DRYWALL SANDING ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        Area:
+        {estimate["area"]:.1f} sq ft
+
+        Coverage Per Pack:
+        {estimate["coverage_per_pack"]} sq ft
+
+        Packs to Order:
+        {estimate["packs"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_primer_report(self, estimate):
+        report = f"""
+
+                    DRYWALL PRIMER ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        Area:
+        {estimate["area"]:.1f} sq ft
+
+        Coats:
+        {estimate["coats"]}
+
+        Coverage:
+        {estimate["coverage_per_gallon"]} sq ft per gallon
+
+        Gallons to Order:
+        {estimate["gallons"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_texture_report(self, estimate):
+        report = f"""
+
+                    DRYWALL TEXTURE ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        Area:
+        {estimate["area"]:.1f} sq ft
+
+        Coverage:
+        {estimate["coverage_per_bucket"]} sq ft per bucket
+
+        Buckets to Order:
+        {estimate["buckets"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_interior_paint_report(self, estimate):
+        report = f"""
+
+                    INTERIOR PAINT ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        Area:
+        {estimate["area"]:.1f} sq ft
+
+        Coats:
+        {estimate["coats"]}
+
+        Coverage:
+        {estimate["coverage_per_gallon"]} sq ft per gallon
+
+        Gallons to Order:
+        {estimate["gallons"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_ceiling_paint_report(self, estimate):
+        report = f"""
+
+                    CEILING PAINT ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        Area:
+        {estimate["area"]:.1f} sq ft
+
+        Coats:
+        {estimate["coats"]}
+
+        Coverage:
+        {estimate["coverage_per_gallon"]} sq ft per gallon
+
+        Gallons to Order:
+        {estimate["gallons"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_trim_paint_report(self, estimate):
+        report = f"""
+
+                    TRIM PAINT ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        Total Trim Length:
+        {estimate["length"]} LF
+
+        Trim Face Width:
+        {estimate["face_width_inches"]} inches
+
+        Paint Area:
+        {estimate["area"]:.1f} sq ft
+
+        Coats:
+        {estimate["coats"]}
+
+        Coverage:
+        {estimate["coverage_per_gallon"]} sq ft per gallon
+
+        Gallons to Order:
+        {estimate["gallons"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_door_paint_report(self, estimate):
+        report = f"""
+
+                    DOOR PAINT ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        Doors:
+        {estimate["doors"]}
+
+        Coats:
+        {estimate["coats"]}
+
+        Coverage Assumption:
+        {estimate["doors_per_gallon"]} doors per gallon
+
+        Gallons to Order:
+        {estimate["gallons"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_exterior_paint_report(self, estimate):
+        report = f"""
+
+                    EXTERIOR PAINT ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Material:
+        {estimate["material"]}
+
+        Area:
+        {estimate["area"]:.1f} sq ft
+
+        Coats:
+        {estimate["coats"]}
+
+        Coverage:
+        {estimate["coverage_per_gallon"]} sq ft per gallon
+
+        Gallons to Order:
+        {estimate["gallons"]}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    ####################
+    #### ELECTRICAL ####
+    ####################
+
+    def create_outlet_report(self, estimate):
+        status = (
+            "Approved electrical schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved electrical plan required"
+        )
+
+        total_display = (
+            f"{estimate['total']} outlets"
+            if estimate["total"] is not None
+            else "TBD — per approved electrical plan"
+        )
+
+        report = f"""
+
+                    ELECTRICAL OUTLET ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Quantity from Plan:
+        {estimate["quantity"]}
+
+        Order Quantity:
+        {total_display}
+
+        Note:
+        Device type, rating, compatibility, and installation must match the
+        approved electrical drawings and panel schedule.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_switch_report(self, estimate):
+        status = (
+            "Approved electrical schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved electrical plan required"
+        )
+
+        total_display = (
+            f"{estimate['total']} switches"
+            if estimate["total"] is not None
+            else "TBD — per approved electrical plan"
+        )
+
+        report = f"""
+
+                    ELECTRICAL SWITCH ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Quantity from Plan:
+        {estimate["quantity"]}
+
+        Order Quantity:
+        {total_display}
+        
+            Note:
+        Device type, rating, compatibility, and installation must match the
+        approved electrical drawings and panel schedule.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_lighting_fixture_report(self, estimate):
+        status = (
+            "Approved lighting schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved electrical plan required"
+        )
+
+        total_display = (
+            f"{estimate['total']} fixtures"
+            if estimate["total"] is not None
+            else "TBD — per approved electrical plan"
+        )
+
+        report = f"""
+
+                    LIGHTING FIXTURE ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Quantity from Plan:
+        {estimate["quantity"]}
+
+        Order Quantity:
+        {total_display}
+        
+            Note:
+        Device type, rating, compatibility, and installation must match the
+        approved electrical drawings and panel schedule.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_electrical_box_report(self, estimate):
+        status = (
+            "Approved electrical-box schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved electrical plan required"
+        )
+
+        total_display = (
+            f"{estimate['total']} boxes"
+            if estimate["total"] is not None
+            else "TBD — per approved electrical plan"
+        )
+
+        report = f"""
+
+                    ELECTRICAL BOX ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Quantity from Plan:
+        {estimate["quantity"]}
+
+        Order Quantity:
+        {total_display}
+        
+            Note:
+        Device type, rating, compatibility, and installation must match the
+        approved electrical drawings and panel schedule.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_romex_report(self, estimate):
+        status = (
+            "Approved wire schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved electrical plan required"
+        )
+
+        total_display = (
+            f"{estimate['total']} LF"
+            if estimate["total"] is not None
+            else "TBD — per approved electrical plan"
+        )
+
+        report = f"""
+
+                    ELECTRICAL CABLE ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Length from Plan:
+        {estimate["length"]} LF
+
+        Order Length:
+        {total_display}
+        
+            Note:
+        Device type, rating, compatibility, and installation must match the
+        approved electrical drawings and panel schedule.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_breaker_report(self, estimate):
+        status = (
+            "Approved breaker schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved electrical plan required"
+        )
+
+        total_display = (
+            f"{estimate['total']} breakers"
+            if estimate["total"] is not None
+            else "TBD — per approved electrical plan"
+        )
+
+        report = f"""
+
+                    CIRCUIT BREAKER ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Quantity from Plan:
+        {estimate["quantity"]}
+
+        Order Quantity:
+        {total_display}
+        
+            Note:
+        Device type, rating, compatibility, and installation must match the
+        approved electrical drawings and panel schedule.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_panel_report(self, estimate):
+        status = (
+            "Approved electrical panel schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved electrical plan required"
+        )
+
+        quantity_display = (
+            str(estimate["quantity"])
+            if estimate["quantity"] is not None
+            else "TBD — per approved electrical plan"
+        )
+
+        report = f"""
+
+                    ELECTRICAL PANEL ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Panel Specification:
+        {estimate["material"]}
+
+        Quantity:
+        {quantity_display}
+        
+            Note:
+        Device type, rating, compatibility, and installation must match the
+        approved electrical drawings and panel schedule.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    ##################
+    #### PLUMBING ####
+    ##################
+
+    def create_pex_report(self, estimate):
+        status = (
+            "Approved plumbing pipe schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved plumbing plan required"
+        )
+
+        total_display = (
+            f"{estimate['total_length']} LF"
+            if estimate["total_length"] is not None
+            else "TBD — per approved plumbing plan"
+        )
+
+        report = f"""
+
+                    PEX PIPE ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Length from Plan:
+        {estimate["length"]} LF
+
+        Order Length:
+        {total_display}
+
+        Length Allowance:
+        {estimate["length_allowance_percent"]}%
+
+        Note:
+        Pipe size, material, and installation must match the approved plumbing plans.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_pvc_drain_report(self, estimate):
+        status = (
+            "Approved plumbing pipe schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved plumbing plan required"
+        )
+
+        total_display = (
+            f"{estimate['total_length']} LF"
+            if estimate["total_length"] is not None
+            else "TBD — per approved plumbing plan"
+        )
+
+        report = f"""
+
+                    PVC DRAIN PIPE ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Length from Plan:
+        {estimate["length"]} LF
+
+        Order Length:
+        {total_display}
+
+        Length Allowance:
+        {estimate["length_allowance_percent"]}%
+
+        Note:
+        Pipe size, material, and installation must match the approved plumbing plans.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_copper_pipe_report(self, estimate):
+        status = (
+            "Approved plumbing pipe schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved plumbing plan required"
+        )
+
+        total_display = (
+            f"{estimate['total_length']} LF"
+            if estimate["total_length"] is not None
+            else "TBD — per approved plumbing plan"
+        )
+
+        report = f"""
+
+                    COPPER PIPE ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Length from Plan:
+        {estimate["length"]} LF
+
+        Order Length:
+        {total_display}
+
+        Length Allowance:
+        {estimate["length_allowance_percent"]}%
+
+        Note:
+        Pipe size, material, and installation must match the approved plumbing plans.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_fittings_report(self, estimate):
+        status = (
+            "Approved plumbing fitting schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved plumbing plan required"
+        )
+
+        total_display = (
+            f"{estimate['total_quantity']} pieces"
+            if estimate["total_quantity"] is not None
+            else "TBD — per approved plumbing plan"
+        )
+
+        report = f"""
+
+                    PLUMBING FITTINGS ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Quantity from Plan:
+        {estimate["quantity"]}
+
+        Order Quantity:
+        {total_display}
+
+        Note:
+        Fitting type, material, size, and installation must match the approved
+        plumbing plans and schedules.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_plumbing_valve_report(self, estimate):
+        status = (
+            "Approved plumbing valve schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved plumbing plan required"
+        )
+
+        total_display = (
+            f"{estimate['total_quantity']} valves"
+            if estimate["total_quantity"] is not None
+            else "TBD — per approved plumbing plan"
+        )
+
+        report = f"""
+
+                    PLUMBING VALVE ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Quantity from Plan:
+        {estimate["quantity"]}
+
+        Order Quantity:
+        {total_display}
+
+        Note:
+        Valve type, material, size, and installation must match the approved
+        plumbing plans and schedules.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_toilet_report(self, estimate):
+        status = (
+            "Approved plumbing fixture schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved plumbing fixture schedule required"
+        )
+
+        total_display = (
+            f"{estimate['total_quantity']} toilets"
+            if estimate["total_quantity"] is not None
+            else "TBD — per approved plumbing fixture schedule"
+        )
+
+        report = f"""
+
+                    TOILET ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Quantity from Schedule:
+        {estimate["quantity"]}
+
+        Order Quantity:
+        {total_display}
+
+        Note:
+        Fixture model, connections, and installation must match the approved
+        plumbing fixture schedule and plans.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_sink_report(self, estimate):
+        status = (
+            "Approved plumbing fixture schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved plumbing fixture schedule required"
+        )
+
+        total_display = (
+            f"{estimate['total_quantity']} sinks"
+            if estimate["total_quantity"] is not None
+            else "TBD — per approved plumbing fixture schedule"
+        )
+
+        report = f"""
+
+                    SINK ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Quantity from Schedule:
+        {estimate["quantity"]}
+
+        Order Quantity:
+        {total_display}
+
+        Note:
+        Fixture model, connections, and installation must match the approved
+        plumbing fixture schedule and plans.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_faucet_report(self, estimate):
+        status = (
+            "Approved plumbing fixture schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved plumbing fixture schedule required"
+        )
+
+        total_display = (
+            f"{estimate['total_quantity']} faucets"
+            if estimate["total_quantity"] is not None
+            else "TBD — per approved plumbing fixture schedule"
+        )
+
+        report = f"""
+
+                    FAUCET ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Quantity from Schedule:
+        {estimate["quantity"]}
+
+        Order Quantity:
+        {total_display}
+
+        Note:
+        Fixture model, connections, and installation must match the approved
+        plumbing fixture schedule and plans.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_shower_report(self, estimate):
+        status = (
+            "Approved plumbing fixture schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved plumbing fixture schedule required"
+        )
+
+        total_display = (
+            f"{estimate['total_quantity']} assemblies"
+            if estimate["total_quantity"] is not None
+            else "TBD — per approved plumbing fixture schedule"
+        )
+
+        report = f"""
+
+                    SHOWER/TUB ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Quantity from Schedule:
+        {estimate["quantity"]}
+
+        Order Quantity:
+        {total_display}
+
+        Note:
+        Fixture model, connections, and installation must match the approved
+        plumbing fixture schedule and plans.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_water_heater_report(self, estimate):
+        status = (
+            "Approved water-heater/MEP schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved water-heater/MEP schedule required"
+        )
+
+        total_display = (
+            f"{estimate['total_quantity']} units"
+            if estimate["total_quantity"] is not None
+            else "TBD — per approved water-heater/MEP schedule"
+        )
+
+        report = f"""
+
+                    WATER HEATER ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Status:
+        {status}
+
+        Material:
+        {estimate["material"]}
+
+        Quantity from Schedule:
+        {estimate["quantity"]}
+
+        Order Quantity:
+        {total_display}
+
+        Note:
+        Capacity, fuel type, venting, electrical requirements, and installation
+        must match the approved MEP schedule and plans.
+
+            """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    ##############
+    #### HVAC ####
+    ##############
+
+    def create_duct_report(self, estimate):
+
+        status = (
+            "Approved HVAC duct schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved HVAC plan required"
+        )
+
+        order_length = (
+            f"{estimate['total_length']} LF"
+            if estimate["total_length"] is not None
+            else "TBD — per approved HVAC plan"
+        )
+
+        report = f"""
+
+                HVAC DUCTWORK ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Status:
+            {status}
+
+            Material:
+            {estimate["material"]}
+
+            Length from Plan:
+            {estimate["length"]} LF
+
+            Order Length:
+            {order_length}
+
+            Length Allowance:
+            {estimate["length_allowance_percent"]}%
+
+            Note:
+            Duct type, size, insulation, fittings, and installation must match
+            the approved HVAC drawings and duct schedule.
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_supply_register_report(self, estimate):
+
+        status = (
+            "Approved HVAC register schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved HVAC plan required"
+        )
+
+        order_quantity = (
+            f"{estimate['total_quantity']} registers"
+            if estimate["total_quantity"] is not None
+            else "TBD — per approved HVAC plan"
+        )
+
+        report = f"""
+
+                SUPPLY REGISTER ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Status:
+            {status}
+
+            Material:
+            {estimate["material"]}
+
+            Quantity from Plan:
+            {estimate["quantity"]}
+
+            Order Quantity:
+            {order_quantity}
+
+            Note:
+            Register size, finish, airflow rating, and installation must match
+            the approved HVAC drawings and register schedule.
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_return_grille_report(self, estimate):
+
+        status = (
+            "Approved HVAC grille schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved HVAC plan required"
+        )
+
+        order_quantity = (
+            f"{estimate['total_quantity']} grilles"
+            if estimate["total_quantity"] is not None
+            else "TBD — per approved HVAC plan"
+        )
+
+        report = f"""
+
+                RETURN GRILLE ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Status:
+            {status}
+
+            Material:
+            {estimate["material"]}
+
+            Quantity from Plan:
+            {estimate["quantity"]}
+
+            Order Quantity:
+            {order_quantity}
+
+            Note:
+            Grille size, finish, airflow rating, and installation must match
+            the approved HVAC drawings and grille schedule.
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_flex_duct_report(self, estimate):
+
+        status = (
+            "Approved HVAC duct schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved HVAC plan required"
+        )
+
+        order_length = (
+            f"{estimate['total_length']} LF"
+            if estimate["total_length"] is not None
+            else "TBD — per approved HVAC plan"
+        )
+
+        report = f"""
+
+                FLEX DUCT ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Status:
+            {status}
+
+            Material:
+            {estimate["material"]}
+
+            Length from Plan:
+            {estimate["length"]} LF
+
+            Order Length:
+            {order_length}
+
+            Length Allowance:
+            {estimate["length_allowance_percent"]}%
+
+            Note:
+            Duct diameter, insulation rating, connections, and installation
+            must match the approved HVAC drawings and duct schedule.
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_thermostat_report(self, estimate):
+
+        status = (
+            "Approved HVAC controls schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved HVAC controls schedule required"
+        )
+
+        order_quantity = (
+            f"{estimate['total_quantity']} thermostats"
+            if estimate["total_quantity"] is not None
+            else "TBD — per approved HVAC controls schedule"
+        )
+
+        report = f"""
+
+                THERMOSTAT ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Status:
+            {status}
+
+            Material:
+            {estimate["material"]}
+
+            Quantity from Schedule:
+            {estimate["quantity"]}
+
+            Order Quantity:
+            {order_quantity}
+
+            Note:
+            Thermostat model, equipment compatibility, controls wiring, and
+            installation must match the approved HVAC controls schedule.
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_air_filter_report(self, estimate):
+
+        status = (
+            "Approved HVAC equipment schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved HVAC equipment schedule required"
+        )
+
+        order_quantity = (
+            f"{estimate['total_quantity']} filters"
+            if estimate["total_quantity"] is not None
+            else "TBD — per approved HVAC equipment schedule"
+        )
+
+        report = f"""
+
+                AIR FILTER ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Status:
+            {status}
+
+            Material:
+            {estimate["material"]}
+
+            Quantity from Schedule:
+            {estimate["quantity"]}
+
+            Order Quantity:
+            {order_quantity}
+
+            Note:
+            Filter dimensions, MERV rating, quantity per unit, and equipment
+            compatibility must match the approved HVAC equipment schedule.
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_condensate_report(self, estimate):
+
+        status = (
+            "Approved condensate-drain specification specified"
+            if estimate["status"] == "specified"
+            else "Approved HVAC plan required"
+        )
+
+        order_length = (
+            f"{estimate['total_length']} LF"
+            if estimate["total_length"] is not None
+            else "TBD — per approved HVAC plan"
+        )
+
+        report = f"""
+
+                CONDENSATE DRAIN ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Status:
+            {status}
+
+            Material:
+            {estimate["material"]}
+
+            Length from Plan:
+            {estimate["length"]} LF
+
+            Order Length:
+            {order_length}
+
+            Length Allowance:
+            {estimate["length_allowance_percent"]}%
+
+            Note:
+            Drain material, size, slope, traps, fittings, and installation must
+            match the approved HVAC drawings and manufacturer requirements.
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_furnace_report(self, estimate):
+
+        status = (
+            "Approved HVAC equipment schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved HVAC equipment schedule required"
+        )
+
+        order_quantity = (
+            f"{estimate['total_quantity']} furnaces"
+            if estimate["total_quantity"] is not None
+            else "TBD — per approved HVAC equipment schedule"
+        )
+
+        report = f"""
+
+                FURNACE ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Status:
+            {status}
+
+            Material:
+            {estimate["material"]}
+
+            Quantity from Schedule:
+            {estimate["quantity"]}
+
+            Order Quantity:
+            {order_quantity}
+
+            Note:
+            Furnace capacity, fuel type, efficiency, electrical requirements,
+            venting, and installation must match the approved HVAC schedule.
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_ac_report(self, estimate):
+
+        status = (
+            "Approved HVAC equipment schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved HVAC equipment schedule required"
+        )
+
+        order_quantity = (
+            f"{estimate['total_quantity']} units"
+            if estimate["total_quantity"] is not None
+            else "TBD — per approved HVAC equipment schedule"
+        )
+
+        report = f"""
+
+                AIR CONDITIONER ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Status:
+            {status}
+
+            Material:
+            {estimate["material"]}
+
+            Quantity from Schedule:
+            {estimate["quantity"]}
+
+            Order Quantity:
+            {order_quantity}
+
+            Note:
+            Equipment capacity, efficiency, electrical requirements, line-set
+            compatibility, and installation must match the approved HVAC schedule.
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_refrigerant_report(self, estimate):
+
+        status = (
+            "Approved HVAC line-set schedule specified"
+            if estimate["status"] == "specified"
+            else "Approved HVAC plan required"
+        )
+
+        order_length = (
+            f"{estimate['total_length']} LF"
+            if estimate["total_length"] is not None
+            else "TBD - per approved HVAC plan"
+        )
+
+        report = f"""
+
+                REFRIGERANT LINE-SET ESTIMATE
+
+            Type:
+            {estimate["type"]}
+
+            Status:
+            {status}
+
+            Material:
+            {estimate["material"]}
+
+            Length from Plan:
+            {estimate["length"]} LF
+
+            Order Length:
+            {order_length}
+
+            Length Allowance:
+            {estimate["length_allowance_percent"]}%
+
+            Note:
+            Line-set diameter, insulation, fittings, routing, and installation
+            must match the approved HVAC drawings and equipment schedule.
+
+        """
+
+        if estimate.get("material_takeoff"):
+            report += "\n    MATERIAL TAKEOFF:\n"
+
+            for item in estimate["material_takeoff"]:
+                report += (
+                    f"\n    {item['item']}: "
+                    f"{item['quantity']} {item['unit']}\n"
+                )
+
+        return report
+
+    def create_custom_concrete_flatwork_report(self, estimate):
+        takeoff_lines = "\n".join(
+            (
+                f"    {item['item']}: "
+                f"{item['quantity']} {item['unit']}"
+            )
+            for item in estimate["material_takeoff"]
+        )
+
+        rebar_status = (
+            "Per approved structural plan"
+            if estimate["reinforced"]
+            else "Not Included"
+        )
+
+        return f"""
+
+                CUSTOM CONCRETE FLATWORK ESTIMATE
+
+        Type:
+        {estimate["type"]}
+
+        Build Type:
+        {estimate["build_type"]}
+
+        Material:
+        {estimate["material"]}
+
+        PLAN / FIELD MEASUREMENTS:
+
+        Area:
+        {estimate["area_sqft"]} sq ft
+
+        Form Perimeter:
+        {estimate["perimeter_lf"]} LF
+
+        Thickness:
+        {estimate["thickness_inches"]} inches
+
+        CONCRETE VOLUME:
+
+        Cubic Feet:
+        {estimate["cubic_feet"]} ft³
+
+        Cubic Yards:
+        {estimate["cubic_yards"]} yd³
+
+        Order Quantity:
+        {estimate["order_quantity"]} yd³
+
+        ASSEMBLY MATERIALS:
+
+        Rebar:
+        {rebar_status}
+
+        Wire Mesh:
+        {"Included" if estimate["wire_mesh"] else "Not Included"}
+
+        Vapor Barrier:
+        {"Included" if estimate["vapor_barrier"] else "Not Included"}
+
+        Gravel Base:
+        {"Included" if estimate["gravel_base"] else "Not Included"}
+
+        Control Joints:
+        {"Included" if estimate["control_joints"] else "Not Included"}
+
+        Forms:
+        {"Included" if estimate["forms"] else "Not Included"}
+
+        Waste:
+        {estimate["waste_percent"]}%
+
+        MATERIAL TAKEOFF:
+
+    {takeoff_lines}
+        """

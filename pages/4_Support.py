@@ -1,11 +1,21 @@
 from datetime import datetime
 
 import streamlit as st
+from EdenTheme import apply_eden_theme
+from Sidebar import render_sidebar
+from AuthGate import require_eden_login
 
 
 st.set_page_config(
     page_title="Eden Support",
     layout="wide"
+)
+
+apply_eden_theme()
+require_eden_login()
+render_sidebar(
+    show_command_center=False,
+    show_project_manager=False
 )
 
 st.title("Support")

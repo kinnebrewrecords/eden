@@ -1,11 +1,55 @@
 import math
 from Settings import Settings
+from EstimatingPreferences import EstimatingPreferences
 
 
 class ConcreteEstimator:
 
+    def _get_concrete_waste_percent(self, waste_percent):
+        if waste_percent is not None:
+            return waste_percent
+
+        preferences = EstimatingPreferences()
+
+        return preferences.get(
+            "concrete_waste_percent"
+        )
+
     def __init__(self):
         pass
+
+    def _get_gravel_base_depth_inches(
+            self,
+            depth_inches=None
+    ):
+        if depth_inches is not None:
+            return depth_inches
+
+        return EstimatingPreferences().get(
+            "gravel_base_depth_inches"
+        )
+
+    def _get_form_board_length_feet(
+            self,
+            length_feet=None
+    ):
+        if length_feet is not None:
+            return length_feet
+
+        return EstimatingPreferences().get(
+            "form_board_length_feet"
+        )
+
+    def _get_concrete_form_tube_length_feet(
+            self,
+            length_feet=None
+    ):
+        if length_feet is not None:
+            return length_feet
+
+        return EstimatingPreferences().get(
+            "concrete_form_tube_length_feet"
+        )
 
     def concrete_slab(
             self,
@@ -20,8 +64,12 @@ class ConcreteEstimator:
             control_joints=False,
             forms=False,
             build_type=None,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         thickness_feet = thickness_inches / 12
 
         cubic_feet = (
@@ -98,9 +146,21 @@ class ConcreteEstimator:
             rebar=None,
             forms=False,
             gravel_base=False,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT,
+            waste_percent=None,
             build_type=None,
     ):
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
+        form_board_length_feet = (
+            self._get_form_board_length_feet()
+        )
+
+        gravel_depth_inches = (
+            self._get_gravel_base_depth_inches()
+        )
+
         depth_feet = depth_inches / 12
 
         cubic_feet = (
@@ -117,8 +177,9 @@ class ConcreteEstimator:
         )
 
         footing_area_sqft = length * width
+
         form_contact_area_sqft = (
-            2 * (length + width) * depth_feet
+                2 * (length + width) * depth_feet
         )
 
         waste_multiplier = 1 + waste_percent / 100
@@ -136,14 +197,14 @@ class ConcreteEstimator:
             form_boards = math.ceil(
                 footing_perimeter_lf *
                 waste_multiplier /
-                Settings.FORM_BOARD_LENGTH_FEET
+                form_board_length_feet
             )
 
             material_takeoff.append(
                 {
                     "item": (
                         f"Footing Form Boards "
-                        f"(2x4 x {Settings.FORM_BOARD_LENGTH_FEET} ft)"
+                        f"(2x4 x {form_board_length_feet} ft)"
                     ),
                     "unit": "EA",
                     "quantity": form_boards
@@ -153,7 +214,7 @@ class ConcreteEstimator:
         if gravel_base:
             gravel_cubic_yards = (
                     footing_area_sqft *
-                    (Settings.GRAVEL_BASE_DEPTH_INCHES / 12) /
+                    (gravel_depth_inches / 12) /
                     27 *
                     waste_multiplier
             )
@@ -162,7 +223,7 @@ class ConcreteEstimator:
                 {
                     "item": (
                         f"Compacted Aggregate Base "
-                        f"({Settings.GRAVEL_BASE_DEPTH_INCHES} in depth)"
+                        f"({gravel_depth_inches} in depth)"
                     ),
                     "unit": "CY",
                     "quantity": round(gravel_cubic_yards, 2)
@@ -176,51 +237,165 @@ class ConcreteEstimator:
             )
 
         return {
-
             "type": "Concrete Footing",
-
             "build_type": build_type,
-
             "material": "Ready Mix Concrete",
-
             "length": length,
-
             "width": width,
-
             "depth_inches": depth_inches,
-
-            "depth_feet": round(
-                depth_feet,
-                2
-            ),
-
-            "cubic_feet": round(
-                cubic_feet,
-                2
-            ),
-
-            "cubic_yards": round(
-                cubic_yards,
-                2
-            ),
-
+            "depth_feet": round(depth_feet, 2),
+            "cubic_feet": round(cubic_feet, 2),
+            "cubic_yards": round(cubic_yards, 2),
             "order_quantity": order_quantity,
-
-            # Assembly information
-
             "reinforced": reinforced,
-
             "rebar": rebar,
-
             "forms": forms,
-
             "gravel_base": gravel_base,
-
             "waste_percent": waste_percent,
-
             "footing_area_sqft": round(footing_area_sqft, 2),
-            "form_contact_area_sqft": round(form_contact_area_sqft, 2),
+            "form_contact_area_sqft": round(
+                form_contact_area_sqft,
+                2
+            ),
             "material_takeoff": material_takeoff,
+        }
+
+    def concrete_footing_system(
+            self,
+            footing_runs,
+            reinforced=False,
+            rebar=None,
+            forms=False,
+            gravel_base=False,
+            waste_percent=None,
+            build_type="Continuous Footing System"
+    ):
+        """Estimate multiple continuous footing runs as one foundation system.
+
+        Each new run needs length, width_inches, depth_inches, and an optional
+        quantity. Older saved runs with width in feet remain supported.
+        Concrete is rounded once for the full system rather than once per run.
+        """
+        waste_percent = self._get_concrete_waste_percent(waste_percent)
+        form_board_length_feet = self._get_form_board_length_feet()
+        gravel_depth_inches = self._get_gravel_base_depth_inches()
+        waste_multiplier = 1 + waste_percent / 100
+        normalized_runs = []
+        total_cubic_feet = 0.0
+        total_footprint_sqft = 0.0
+        total_form_perimeter_lf = 0.0
+
+        for run in footing_runs:
+            length = float(run["length"])
+            if run.get("width_inches") is not None:
+                width_inches = float(run["width_inches"])
+                width = width_inches / 12
+            elif run.get("width") is not None:
+                # Backward compatibility for estimates saved before the
+                # explicit width_inches field was introduced.
+                width = float(run["width"])
+                width_inches = width * 12
+            else:
+                raise ValueError(
+                    "Each footing run needs a width in inches."
+                )
+            depth_inches = float(run["depth_inches"])
+            quantity = int(run.get("quantity", 1) or 1)
+
+            if length <= 0 or width <= 0 or depth_inches <= 0 or quantity <= 0:
+                raise ValueError("Each footing run needs positive dimensions.")
+
+            depth_feet = depth_inches / 12
+            cubic_feet = length * width * depth_feet * quantity
+            footprint_sqft = length * width * quantity
+            form_perimeter_lf = 2 * (length + width) * quantity
+
+            total_cubic_feet += cubic_feet
+            total_footprint_sqft += footprint_sqft
+            total_form_perimeter_lf += form_perimeter_lf
+            normalized_runs.append(
+                {
+                    "length": length,
+                    "width": width,
+                    "width_inches": round(width_inches, 2),
+                    "depth_inches": depth_inches,
+                    "quantity": quantity,
+                    "cubic_yards": round(cubic_feet / 27, 2)
+                }
+            )
+
+        if not normalized_runs:
+            raise ValueError("Add at least one footing run.")
+
+        cubic_yards = total_cubic_feet / 27
+        order_quantity = math.ceil(cubic_yards * waste_multiplier)
+        material_takeoff = [
+            {
+                "item": "Ready Mix Concrete",
+                "unit": "CY",
+                "quantity": order_quantity
+            }
+        ]
+
+        if forms:
+            material_takeoff.append(
+                {
+                    "item": (
+                        "Footing System Form Boards "
+                        f"(2x4 x {form_board_length_feet} ft)"
+                    ),
+                    "unit": "EA",
+                    "quantity": math.ceil(
+                        total_form_perimeter_lf * waste_multiplier /
+                        form_board_length_feet
+                    )
+                }
+            )
+
+        if gravel_base:
+            gravel_cubic_yards = (
+                total_footprint_sqft *
+                (gravel_depth_inches / 12) / 27 *
+                waste_multiplier
+            )
+            material_takeoff.append(
+                {
+                    "item": (
+                        "Compacted Aggregate Base "
+                        f"({gravel_depth_inches} in depth)"
+                    ),
+                    "unit": "CY",
+                    "quantity": round(gravel_cubic_yards, 2)
+                }
+            )
+
+        if rebar and rebar.get("status") == "specified":
+            self._append_rebar_material_takeoff(
+                material_takeoff,
+                rebar.get("takeoff", [])
+            )
+
+        return {
+            "type": "Concrete Footing System",
+            "build_type": build_type,
+            "material": "Ready Mix Concrete",
+            "footing_runs": normalized_runs,
+            "run_count": sum(run["quantity"] for run in normalized_runs),
+            "cubic_feet": round(total_cubic_feet, 2),
+            "cubic_yards": round(cubic_yards, 2),
+            "order_quantity": order_quantity,
+            "reinforced": reinforced,
+            "rebar": rebar,
+            "forms": forms,
+            "gravel_base": gravel_base,
+            "waste_percent": waste_percent,
+            "footing_area_sqft": round(total_footprint_sqft, 2),
+            "form_perimeter_lf": round(total_form_perimeter_lf, 2),
+            "material_takeoff": material_takeoff,
+            "structural_note": (
+                "Footing size, reinforcing, stepped elevations, and bearing "
+                "requirements must match approved structural plans."
+            )
         }
 
     def concrete_foundation_wall(
@@ -233,8 +408,12 @@ class ConcreteEstimator:
             forms=False,
             waterproofing=False,
             build_type=None,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         thickness_feet = thickness_inches / 12
 
         cubic_feet = (
@@ -359,8 +538,12 @@ class ConcreteEstimator:
             gravel_base=False,
             control_joints=False,
             forms=False,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         thickness_feet = thickness_inches / 12
         cubic_feet = length * width * thickness_feet
         cubic_yards = cubic_feet / 27
@@ -423,8 +606,12 @@ class ConcreteEstimator:
             rebar=None,
             forms=False,
             gravel_base=False,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         radius_feet = (
                               diameter_inches / 12
                       ) / 2
@@ -457,6 +644,14 @@ class ConcreteEstimator:
 
         waste_multiplier = 1 + waste_percent / 100
 
+        form_tube_length_feet = (
+            self._get_concrete_form_tube_length_feet()
+        )
+
+        gravel_depth_inches = (
+            self._get_gravel_base_depth_inches()
+        )
+
         material_takeoff = [
             {
                 "item": "Ready Mix Concrete",
@@ -467,7 +662,7 @@ class ConcreteEstimator:
 
         if forms:
             tubes_per_pier = math.ceil(
-                height / Settings.CONCRETE_FORM_TUBE_LENGTH_FEET
+                height / form_tube_length_feet
             )
 
             total_tubes = tubes_per_pier * quantity
@@ -476,7 +671,7 @@ class ConcreteEstimator:
                 {
                     "item": (
                         f"{diameter_inches} in Concrete Form Tubes "
-                        f"({Settings.CONCRETE_FORM_TUBE_LENGTH_FEET} ft)"
+                        f"({form_tube_length_feet} ft)"
                     ),
                     "unit": "EA",
                     "quantity": total_tubes
@@ -486,7 +681,7 @@ class ConcreteEstimator:
         if gravel_base:
             gravel_cubic_yards = (
                     total_footprint_sqft *
-                    (Settings.GRAVEL_BASE_DEPTH_INCHES / 12) /
+                    (gravel_depth_inches / 12) /
                     27 *
                     waste_multiplier
             )
@@ -495,7 +690,7 @@ class ConcreteEstimator:
                 {
                     "item": (
                         f"Compacted Aggregate Base "
-                        f"({Settings.GRAVEL_BASE_DEPTH_INCHES} in depth)"
+                        f"({gravel_depth_inches} in depth)"
                     ),
                     "unit": "CY",
                     "quantity": round(gravel_cubic_yards, 2)
@@ -563,8 +758,12 @@ class ConcreteEstimator:
             reinforced=False,
             rebar=None,
             forms=False,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         radius_feet = (
                               diameter_inches / 12
                       ) / 2
@@ -681,8 +880,12 @@ class ConcreteEstimator:
             rebar=None,
             forms=False,
             gravel_base=False,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         width_feet = width_inches / 12
         height_feet = height_inches / 12
 
@@ -814,8 +1017,12 @@ class ConcreteEstimator:
             gravel_base=False,
             control_joints=False,
             forms=False,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         thickness_feet = thickness_inches / 12
         cubic_feet = length * width * thickness_feet
         cubic_yards = cubic_feet / 27
@@ -880,8 +1087,12 @@ class ConcreteEstimator:
             gravel_base=False,
             control_joints=False,
             forms=False,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         thickness_feet = thickness_inches / 12
         cubic_feet = length * width * thickness_feet
         cubic_yards = cubic_feet / 27
@@ -946,8 +1157,12 @@ class ConcreteEstimator:
             gravel_base=False,
             control_joints=False,
             forms=False,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         thickness_feet = thickness_inches / 12
 
         cubic_feet = (
@@ -1052,8 +1267,12 @@ class ConcreteEstimator:
             gravel_base=False,
             vapor_barrier=False,
             forms=False,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         riser_height = riser_height_inches / 12
         tread_depth_feet = tread_depth / 12
 
@@ -1206,8 +1425,12 @@ class ConcreteEstimator:
             reinforced=False,
             rebar=None,
             forms=False,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         width_feet = width_inches / 12
         height_feet = height_inches / 12
 
@@ -1317,8 +1540,12 @@ class ConcreteEstimator:
             rebar=None,
             gravel_base=False,
             forms=False,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         height_feet = height_inches / 12
 
         average_height = height_feet / 2
@@ -1445,8 +1672,12 @@ class ConcreteEstimator:
             length,
             width_inches,
             depth_inches,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         width_feet = width_inches / 12
         depth_feet = depth_inches / 12
 
@@ -1515,8 +1746,12 @@ class ConcreteEstimator:
             length,
             height,
             thickness_inches,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+        
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         thickness_feet = thickness_inches / 12
 
         cubic_feet = (
@@ -1583,8 +1818,12 @@ class ConcreteEstimator:
             rebar=None,
             forms=False,
             build_type=None,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         width_feet = width_inches / 12
         height_feet = height_inches / 12
 
@@ -1685,8 +1924,12 @@ class ConcreteEstimator:
             length,
             width,
             depth_inches,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         depth_feet = depth_inches / 12
 
         cubic_feet = (
@@ -1752,8 +1995,12 @@ class ConcreteEstimator:
             diameter_inches,
             depth,
             quantity=1,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         radius_feet = (
                               diameter_inches / 12
                       ) / 2
@@ -1830,8 +2077,12 @@ class ConcreteEstimator:
             length,
             width,
             depth_inches,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         depth_feet = depth_inches / 12
 
         cubic_feet = (
@@ -1896,8 +2147,12 @@ class ConcreteEstimator:
             length,
             width_inches,
             height_inches,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         width_feet = width_inches / 12
         height_feet = height_inches / 12
 
@@ -1969,8 +2224,12 @@ class ConcreteEstimator:
             width,
             edge_width_inches,
             edge_depth_inches,
-            waste_percent=Settings.CONCRETE_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
         edge_width_feet = edge_width_inches / 12
         edge_depth_feet = edge_depth_inches / 12
 
@@ -2057,6 +2316,14 @@ class ConcreteEstimator:
         perimeter_lf = 2 * (length + width)
         waste_multiplier = 1 + waste_percent / 100
 
+        gravel_depth_inches = (
+            self._get_gravel_base_depth_inches()
+        )
+
+        form_board_length_feet = (
+            self._get_form_board_length_feet()
+        )
+
         material_takeoff = [
             {
                 "item": "Ready Mix Concrete",
@@ -2100,7 +2367,7 @@ class ConcreteEstimator:
         if gravel_base:
             gravel_cubic_yards = (
                     area_sqft *
-                    (Settings.GRAVEL_BASE_DEPTH_INCHES / 12) /
+                    (gravel_depth_inches / 12) /
                     27 *
                     waste_multiplier
             )
@@ -2109,7 +2376,7 @@ class ConcreteEstimator:
                 {
                     "item": (
                         f"Compacted Aggregate Base "
-                        f"({Settings.GRAVEL_BASE_DEPTH_INCHES} in depth)"
+                        f"({gravel_depth_inches} in depth)"
                     ),
                     "unit": "CY",
                     "quantity": round(gravel_cubic_yards, 2)
@@ -2120,14 +2387,14 @@ class ConcreteEstimator:
             form_boards = math.ceil(
                 perimeter_lf *
                 waste_multiplier /
-                Settings.FORM_BOARD_LENGTH_FEET
+                form_board_length_feet
             )
 
             material_takeoff.append(
                 {
                     "item": (
                         f"{form_item} "
-                        f"(2x4 x {Settings.FORM_BOARD_LENGTH_FEET} ft)"
+                        f"(2x4 x {form_board_length_feet} ft)"
                     ),
                     "unit": "EA",
                     "quantity": form_boards
@@ -2159,3 +2426,142 @@ class ConcreteEstimator:
                     "quantity": rebar_item["sticks"]
                 }
             )
+
+    def concrete_custom_flatwork(
+            self,
+            area_sqft,
+            perimeter_lf,
+            thickness_inches,
+            reinforced=False,
+            rebar=None,
+            wire_mesh=False,
+            vapor_barrier=False,
+            gravel_base=False,
+            control_joints=False,
+            forms=False,
+            build_type="Custom Concrete Flatwork",
+            waste_percent=None
+    ):
+        waste_percent = self._get_concrete_waste_percent(
+            waste_percent
+        )
+
+        gravel_depth_inches = (
+            self._get_gravel_base_depth_inches()
+        )
+
+        form_board_length_feet = (
+            self._get_form_board_length_feet()
+        )
+
+        thickness_feet = thickness_inches / 12
+        cubic_feet = area_sqft * thickness_feet
+        cubic_yards = cubic_feet / 27
+        waste_multiplier = 1 + waste_percent / 100
+
+        order_quantity = math.ceil(
+            cubic_yards * waste_multiplier
+        )
+
+        material_takeoff = [
+            {
+                "item": "Ready Mix Concrete",
+                "unit": "CY",
+                "quantity": order_quantity
+            }
+        ]
+
+        if wire_mesh:
+            mesh_sheets = math.ceil(
+                area_sqft *
+                waste_multiplier /
+                Settings.WIRE_MESH_SHEET_COVERAGE_SQFT
+            )
+
+            material_takeoff.append(
+                {
+                    "item": "5x10 Wire Mesh Sheets",
+                    "unit": "SHEETS",
+                    "quantity": mesh_sheets
+                }
+            )
+
+        if vapor_barrier:
+            vapor_barrier_rolls = math.ceil(
+                area_sqft *
+                waste_multiplier /
+                Settings.VAPOR_BARRIER_ROLL_COVERAGE_SQFT
+            )
+
+            material_takeoff.append(
+                {
+                    "item": "6 mil Vapor Barrier",
+                    "unit": "ROLLS",
+                    "quantity": vapor_barrier_rolls
+                }
+            )
+
+        if gravel_base:
+            gravel_cubic_yards = (
+                    area_sqft *
+                    (gravel_depth_inches / 12) /
+                    27 *
+                    waste_multiplier
+            )
+
+            material_takeoff.append(
+                {
+                    "item": (
+                        f"Compacted Aggregate Base "
+                        f"({gravel_depth_inches} in depth)"
+                    ),
+                    "unit": "CY",
+                    "quantity": round(gravel_cubic_yards, 2)
+                }
+            )
+
+        if forms:
+            form_boards = math.ceil(
+                perimeter_lf *
+                waste_multiplier /
+                form_board_length_feet
+            )
+
+            material_takeoff.append(
+                {
+                    "item": (
+                        f"Custom Flatwork Forms "
+                        f"(2x4 x {form_board_length_feet} ft)"
+                    ),
+                    "unit": "EA",
+                    "quantity": form_boards
+                }
+            )
+
+        if rebar and rebar.get("status") == "specified":
+            self._append_rebar_material_takeoff(
+                material_takeoff,
+                rebar.get("takeoff", [])
+            )
+
+        return {
+            "type": "Custom Concrete Flatwork",
+            "build_type": build_type,
+            "material": "Ready Mix Concrete",
+            "area_sqft": round(area_sqft, 2),
+            "perimeter_lf": round(perimeter_lf, 2),
+            "thickness_inches": thickness_inches,
+            "thickness_feet": round(thickness_feet, 2),
+            "cubic_feet": round(cubic_feet, 2),
+            "cubic_yards": round(cubic_yards, 2),
+            "order_quantity": order_quantity,
+            "reinforced": reinforced,
+            "rebar": rebar,
+            "wire_mesh": wire_mesh,
+            "vapor_barrier": vapor_barrier,
+            "gravel_base": gravel_base,
+            "control_joints": control_joints,
+            "forms": forms,
+            "waste_percent": waste_percent,
+            "material_takeoff": material_takeoff
+        }

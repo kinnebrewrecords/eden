@@ -20,27 +20,40 @@ class IntentDetector:
         ]):
             intent["action"] = "estimate"
 
+        project_assemblies = {
+            "backyard studio shell": "backyard studio shell",
+            "backyard studio": "backyard studio shell",
+            "small studio shell": "backyard studio shell",
+            "studio shell": "backyard studio shell"
+        }
+
         #### CONCRETE ####
 
         concrete_types = [
+            "footing system",
+            "foundation footing system",
+            "continuous footing system",
+            "custom flatwork",
+            "flatwork",
             "foundation wall", "retaining wall", "grade beam",
             "round footing", "spread footing", "pile cap",
             "slab edge", "footing", "lintel", "trench", "sidewalk",
             "driveway", "steps", "column", "ramp", "beam",
-                "pad", "pier", "curb", "patio","slab"
+            "pad", "pier", "curb", "patio", "slab"
         ]
-
         #### LUMBER ####
 
         lumber_aliases = {
+            "framed wall with an opening": "framed wall with openings",
+            "framed wall with opening": "framed wall with openings",
+            "wall with opening": "framed wall with openings",
+            "framed wall with openings": "framed wall with openings",
+            "frame wall with openings": "framed wall with openings",
+            "wall with openings": "framed wall with openings",
+
             "framed wall": "framed wall",
             "frame wall": "framed wall",
             "stud wall": "framed wall",
-
-            "door header": "headers",
-            "window header": "headers",
-            "headers": "headers",
-            "header": "headers",
 
             "ceiling joists": "ceiling joists",
             "floor joists": "floor joists",
@@ -104,7 +117,7 @@ class IntentDetector:
         roofing_terms = [
                 "shingles",
                 "roof shingles",
-                "asphalt shingles"
+                "asphalt shingles",
                 "underlayment",
                 "roof underlayment",
                 "synthetic underlayment",
@@ -278,7 +291,55 @@ class IntentDetector:
             "drain line",
         ]
 
-        if any(item in command for item in concrete_types):
+        specialty_aliases = {
+            "exterior siding": "siding",
+            "siding": "siding",
+            "house wrap": "housewrap",
+            "housewrap": "housewrap",
+            "weather resistive barrier": "housewrap",
+            "exterior trim": "exterior trim",
+            "deck boards": "decking",
+            "decking": "decking",
+            "fence": "fence",
+            "fencing": "fence",
+            "flooring": "flooring",
+            "lvp flooring": "flooring",
+            "vinyl plank flooring": "flooring",
+            "baseboard trim": "baseboard",
+            "baseboard": "baseboard",
+            "interior doors": "interior doors",
+            "interior door": "interior doors",
+            "exterior doors": "exterior doors",
+            "exterior door": "exterior doors",
+            "windows": "windows",
+            "window": "windows"
+        }
+
+        if any(item in command for item in project_assemblies):
+                intent["category"] = "assembly"
+
+                for item in sorted(
+                    project_assemblies,
+                    key=len,
+                    reverse=True
+                ):
+                    if item in command:
+                        intent["type"] = project_assemblies[item]
+                        break
+
+        elif any(item in command for item in specialty_aliases):
+                intent["category"] = "specialty"
+
+                for item in sorted(
+                    specialty_aliases,
+                    key=len,
+                    reverse=True
+                ):
+                    if item in command:
+                        intent["type"] = specialty_aliases[item]
+                        break
+
+        elif any(item in command for item in concrete_types):
                 intent["category"] = "concrete"
 
                 for item in concrete_types:

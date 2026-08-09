@@ -1,18 +1,87 @@
 import math
 from Settings import Settings
+from EstimatingPreferences import EstimatingPreferences
 
 
 class RoofingEstimator:
+
+    def _get_roofing_waste_percent(self, waste_percent):
+        if waste_percent is not None:
+            return waste_percent
+
+        preferences = EstimatingPreferences()
+
+        return preferences.get(
+            "roofing_waste_percent"
+        )
+
+    def _calculate_roof_geometry(
+            self,
+            length_feet,
+            width_feet,
+            roof_type,
+            pitch_rise,
+            overhang_inches
+    ):
+        """Return the actual sloped roof coverage from a building footprint."""
+        roof_type = str(roof_type).strip().lower()
+        pitch_rise = float(pitch_rise)
+        overhang_inches = float(overhang_inches)
+
+        if roof_type not in ["gable", "shed"]:
+            raise ValueError("Roof type must be gable or shed.")
+        if pitch_rise <= 0:
+            raise ValueError("Roof pitch must be greater than zero.")
+        if overhang_inches < 0:
+            raise ValueError("Overhang cannot be negative.")
+
+        overhang_feet = overhang_inches / 12
+        slope_factor = math.sqrt(1 + (pitch_rise / 12) ** 2)
+        roof_length = length_feet + (2 * overhang_feet)
+
+        if roof_type == "gable":
+            roof_plane_count = 2
+            horizontal_run = (width_feet / 2) + overhang_feet
+        else:
+            roof_plane_count = 1
+            horizontal_run = width_feet + (2 * overhang_feet)
+
+        rafter_length = horizontal_run * slope_factor
+        roof_plane_area = roof_length * rafter_length
+
+        return {
+            "roof_type": roof_type,
+            "pitch_rise": pitch_rise,
+            "overhang_inches": overhang_inches,
+            "roof_plane_count": roof_plane_count,
+            "roof_length": round(roof_length, 2),
+            "rafter_length": round(rafter_length, 2),
+            "roof_plane_area": round(roof_plane_area, 2),
+            "area": round(roof_plane_area * roof_plane_count, 2)
+        }
 
     def shingles(
             self,
             length_feet,
             width_feet,
-            waste_percent=Settings.ROOFING_WASTE_PERCENT
+            roof_type="gable",
+            pitch_rise=6.0,
+            overhang_inches=12.0,
+            waste_percent=None
     ):
 
-        # Roof area (simple slope adjustment added later)
-        area = length_feet * width_feet
+        waste_percent = self._get_roofing_waste_percent(
+            waste_percent
+        )
+
+        geometry = self._calculate_roof_geometry(
+            length_feet,
+            width_feet,
+            roof_type,
+            pitch_rise,
+            overhang_inches
+        )
+        area = geometry["area"]
 
         area_with_waste = area * (
             1 + waste_percent / 100
@@ -49,6 +118,7 @@ class RoofingEstimator:
                 "width": width_feet
             },
 
+            **geometry,
             "area": area,
 
             "squares": squares,
@@ -66,11 +136,23 @@ class RoofingEstimator:
             self,
             length_feet,
             width_feet,
-            waste_percent=Settings.ROOFING_WASTE_PERCENT
+            roof_type="gable",
+            pitch_rise=6.0,
+            overhang_inches=12.0,
+            waste_percent=None
     ):
+        waste_percent = self._get_roofing_waste_percent(
+            waste_percent
+        )
 
-        # Roof area
-        area = length_feet * width_feet
+        geometry = self._calculate_roof_geometry(
+            length_feet,
+            width_feet,
+            roof_type,
+            pitch_rise,
+            overhang_inches
+        )
+        area = geometry["area"]
 
         # Add waste
         area_with_waste = area * (
@@ -102,6 +184,7 @@ class RoofingEstimator:
                 "width": width_feet
             },
 
+            **geometry,
             "area": area,
 
             "material": {
@@ -118,8 +201,11 @@ class RoofingEstimator:
             self,
             required_length_feet,
             stock_length_feet=Settings.DRIP_EDGE_PIECE_LENGTH_FEET,
-            waste_percent=Settings.ROOFING_WASTE_PERCENT
+            waste_percent=None
     ):
+        waste_percent = self._get_roofing_waste_percent(
+            waste_percent
+        )
         total_length = math.ceil(
             required_length_feet *
             (1 + waste_percent / 100)
@@ -156,8 +242,11 @@ class RoofingEstimator:
     def ice_water_shield(
             self,
             required_coverage_sqft,
-            waste_percent=Settings.ROOFING_WASTE_PERCENT
+            waste_percent=None
     ):
+        waste_percent = self._get_roofing_waste_percent(
+            waste_percent
+        )
         roll_coverage = (
             Settings.ICE_WATER_SHIELD_ROLL_COVERAGE_SQFT
         )
@@ -197,8 +286,11 @@ class RoofingEstimator:
     def ridge_vent(
             self,
             length_feet,
-            waste_percent=Settings.ROOFING_WASTE_PERCENT
+            waste_percent=None
     ):
+        waste_percent = self._get_roofing_waste_percent(
+            waste_percent
+        )
 
         total_length = math.ceil(
             length_feet * (1 + waste_percent / 100)
@@ -237,8 +329,11 @@ class RoofingEstimator:
     def flashing(
             self,
             quantity,
-            waste_percent=Settings.ROOFING_WASTE_PERCENT
+            waste_percent=None
     ):
+        waste_percent = self._get_roofing_waste_percent(
+            waste_percent
+        )
         import math
 
         total_quantity = math.ceil(

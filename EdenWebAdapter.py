@@ -81,6 +81,21 @@ def run_eden(command, answers=None):
         messages = useful_messages(terminal_output.getvalue())
         prompt = str(question).strip()
 
+        resume_command = command
+        normalized_command = command.lower().strip()
+
+        if (
+                normalized_command == "wall"
+                and "wall length" in prompt.lower()
+        ):
+            resume_command = "estimate wall drywall"
+
+        elif (
+                normalized_command == "ceiling"
+                and "ceiling length" in prompt.lower()
+        ):
+            resume_command = "estimate ceiling drywall"
+
         if messages and prompt:
             text = f"{messages}\n\n{prompt}"
         else:
@@ -88,7 +103,8 @@ def run_eden(command, answers=None):
 
         return {
             "kind": "question",
-            "text": text
+            "text": text,
+            "resume_command": resume_command,
         }
 
     except EstimateChange as change:

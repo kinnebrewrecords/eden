@@ -24,7 +24,9 @@ def save_profile(
         company,
         phone="",
         email="",
-        address=""
+        address="",
+        default_region="",
+        preferred_supplier=""
 ):
     existing_profile = load_profile()
 
@@ -34,6 +36,8 @@ def save_profile(
         "phone": phone.strip(),
         "email": email.strip(),
         "address": address.strip(),
+        "default_region": default_region.strip(),
+        "preferred_supplier": preferred_supplier.strip(),
         "avatar_path": existing_profile.get(
             "avatar_path",
             ""

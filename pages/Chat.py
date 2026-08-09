@@ -1,0 +1,362 @@
+import streamlit as st
+
+from EdenWebAdapter import run_eden
+from EdenAI import EdenAI
+from EdenTheme import apply_eden_theme
+import html
+from Sidebar import render_sidebar
+from AuthGate import require_eden_login
+
+
+st.set_page_config(
+    page_title="Chat with Eden",
+    layout="wide"
+)
+
+apply_eden_theme()
+require_eden_login()
+render_sidebar(
+    show_command_center=False,
+    show_project_manager=False
+)
+
+st.markdown(
+    """
+    <style>
+    
+            .eden-command-deck {
+            background: linear-gradient(135deg, #0E1621, #101F31);
+            border: 1px solid #2E435E;
+            border-radius: 16px;
+            box-shadow: 0 0 28px rgba(56, 189, 248, 0.10);
+            margin-bottom: 18px;
+            padding: 26px;
+        }
+
+        .eden-command-deck h1 {
+            color: #F8FAFC;
+            margin: 4px 0 8px 0;
+        }
+
+        .eden-command-deck p {
+            color: #AAB7C8;
+            margin: 0;
+        }
+
+        .eden-system-label {
+            color: #38BDF8 !important;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+        }
+    
+        .eden-response {
+        background: #0B111A;
+        border: 1px solid #2E435E;
+        border-radius: 10px;
+        color: #EAF2FF;
+        font-family: "Segoe UI", sans-serif;
+        line-height: 1.55;
+        padding: 16px;
+        white-space: pre-wrap;
+        }
+    
+                [data-testid="stChatMessage"] {
+            background: transparent;
+            border: none;
+            margin-bottom: 8px;
+            padding: 0;
+        }
+
+                        .eden-bubble {
+            backdrop-filter: blur(18px) saturate(140%);
+            -webkit-backdrop-filter: blur(18px) saturate(140%);
+            border-radius: 18px;
+            line-height: 1.55;
+            max-width: 82%;
+            overflow: hidden;
+            padding: 15px 17px;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            white-space: pre-wrap;
+        }
+
+        .eden-bubble::before {
+            background: linear-gradient(
+                115deg,
+                rgba(255, 255, 255, 0.20) 0%,
+                rgba(255, 255, 255, 0.06) 18%,
+                transparent 42%,
+                transparent 74%,
+                rgba(56, 189, 248, 0.10) 100%
+            );
+            content: "";
+            inset: 0;
+            pointer-events: none;
+            position: absolute;
+        }
+
+        .eden-bubble:hover {
+            box-shadow:
+                0 16px 38px rgba(0, 0, 0, 0.38),
+                0 0 22px rgba(56, 189, 248, 0.14);
+            transform: translateY(-3px);
+        }
+
+        .eden-bubble-assistant {
+            background: linear-gradient(
+                135deg,
+                rgba(35, 56, 82, 0.72),
+                rgba(10, 17, 28, 0.78)
+            );
+            border: 1px solid rgba(125, 211, 252, 0.34);
+            border-top-left-radius: 4px;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.16),
+                0 10px 28px rgba(0, 0, 0, 0.30);
+            color: #EAF2FF;
+        }
+
+        .eden-bubble-user {
+            background: linear-gradient(
+                135deg,
+                rgba(56, 189, 248, 0.68),
+                rgba(14, 116, 144, 0.72)
+            );
+            border: 1px solid rgba(186, 230, 253, 0.72);
+            border-top-right-radius: 4px;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.26),
+                0 10px 28px rgba(56, 189, 248, 0.18);
+            color: #061019;
+            font-weight: 500;
+            margin-left: auto;
+        }
+
+        [data-testid="stChatInput"] {
+            background: #111C2A;
+            border: 1px solid #2E435E;
+            border-radius: 12px;
+        }
+
+        [data-testid="stChatInput"] textarea {
+            color: #F8FAFC !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <div class="eden-command-deck">
+        <p class="eden-system-label">EDEN // LIVE COMMAND LINK</p>
+        <h1>What are we building today?</h1>
+        <p>
+            Describe the work, answer Eden’s questions, and save the
+            resulting estimate to your active project.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+st.caption("QUICK COMMANDS")
+
+quick_left, quick_center, quick_right, quick_project = st.columns(4)
+
+with quick_left:
+    patio_command = st.button(
+        "◈ Estimate Patio",
+        use_container_width=True
+    )
+
+with quick_center:
+    slab_command = st.button(
+        "◈ Estimate Slab",
+        use_container_width=True
+    )
+
+with quick_right:
+    wall_command = st.button(
+        "◈ Frame a Wall",
+        use_container_width=True
+    )
+
+with quick_project:
+    project_command = st.button(
+        "◈ Show Project",
+        use_container_width=True
+    )
+
+if "eden_browser_messages" not in st.session_state:
+    st.session_state.eden_browser_messages = [
+        {
+            "role": "assistant",
+            "content": (
+                "Eden online.\n\n"
+                "Tell me what you are building in plain language. "
+                "I will gather the details, create a material estimate, "
+                "and save it to the active project when it is ready.\n\n"
+                "Try:\n"
+                "• Estimate a 20 by 20 patio, 4 inches thick\n"
+                "• Estimate four 20 foot framed walls, 9 feet high\n"
+                "• Show project"
+            )
+        }
+    ]
+
+if "eden_pending_command" not in st.session_state:
+    st.session_state.eden_pending_command = None
+
+if "eden_pending_answers" not in st.session_state:
+    st.session_state.eden_pending_answers = []
+
+if "eden_ai" not in st.session_state:
+    st.session_state.eden_ai = EdenAI()
+
+
+def add_message(role, content):
+    st.session_state.eden_browser_messages.append(
+        {
+            "role": role,
+            "content": content
+        }
+    )
+
+
+def handle_eden_result(command, answers):
+    result = run_eden(command, answers)
+
+    if result["kind"] == "question":
+        st.session_state.eden_pending_command = result.get(
+            "resume_command",
+            command
+        )
+        st.session_state.eden_pending_answers = answers
+
+        add_message(
+            "assistant",
+            result["text"]
+        )
+
+    elif result["kind"] == "complete":
+        st.session_state.eden_pending_command = None
+        st.session_state.eden_pending_answers = []
+
+        add_message(
+            "assistant",
+            result["text"]
+        )
+
+    elif result["kind"] == "change":
+        st.session_state.eden_pending_command = None
+        st.session_state.eden_pending_answers = []
+
+        add_message(
+            "assistant",
+            f"Okay, switching to: {result['command']}"
+        )
+
+        handle_eden_result(
+            result["command"],
+            []
+        )
+
+    else:
+        st.session_state.eden_pending_command = None
+        st.session_state.eden_pending_answers = []
+
+        add_message(
+            "assistant",
+            result["text"]
+        )
+
+
+if st.button("Clear Chat"):
+    st.session_state.eden_browser_messages = [
+        {
+            "role": "assistant",
+            "content": (
+                "Chat cleared. What would you like to estimate?"
+            )
+        }
+    ]
+
+    st.session_state.eden_pending_command = None
+    st.session_state.eden_pending_answers = []
+
+    st.rerun()
+
+
+for message in st.session_state.eden_browser_messages:
+    avatar = "⚡" if message["role"] == "assistant" else "👤"
+
+    with st.chat_message(
+            message["role"],
+            avatar=avatar
+    ):
+        safe_content = html.escape(
+            str(message["content"])
+        ).replace("\n", "<br>")
+
+        bubble_class = (
+            "eden-bubble-assistant"
+            if message["role"] == "assistant"
+            else "eden-bubble-user"
+        )
+
+        st.markdown(
+            f'<div class="eden-bubble {bubble_class}">'
+            f'{safe_content}'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+
+prompt = st.chat_input(
+    "Describe work or ask Eden a question..."
+)
+
+if patio_command:
+    prompt = "estimate a patio"
+
+elif slab_command:
+    prompt = "estimate a slab"
+
+elif wall_command:
+    prompt = "estimate a framed wall"
+
+elif project_command:
+    prompt = "show project"
+
+if prompt:
+    add_message(
+        "user",
+        prompt
+    )
+
+    if st.session_state.eden_pending_command:
+        command = st.session_state.eden_pending_command
+
+        answers = (
+            st.session_state.eden_pending_answers +
+            [prompt]
+        )
+
+    else:
+        try:
+            command = st.session_state.eden_ai.normalize_new_request(
+                prompt
+            )
+        except Exception:
+            # Eden remains usable if the API is unavailable or out of credit.
+            command = prompt
+        answers = []
+
+    handle_eden_result(
+        command,
+        answers
+    )
+
+    st.rerun()

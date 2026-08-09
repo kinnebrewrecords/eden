@@ -1,6 +1,8 @@
 
 from Estimating import Estimator
 from ParameterExtractor import ParameterExtractor
+from AssemblyReports import create_backyard_studio_shell_report
+from SpecialtyReports import create_specialty_report
 
 
 class EstimateChange(Exception):
@@ -181,6 +183,18 @@ class CommandHandler:
     - estimate roof sheathing
     - estimate shingles
 
+    Exterior and Finish Work:
+    - estimate exterior siding
+    - estimate housewrap
+    - estimate decking
+    - estimate a fence
+    - estimate flooring
+    - estimate baseboard
+    - estimate interior doors
+
+    Project Assemblies:
+    - estimate a backyard studio shell
+
     Interior:
     - estimate wall drywall
     - estimate batt insulation
@@ -238,7 +252,13 @@ class CommandHandler:
 
     def estimate_command(self, command, intent):
 
-        if intent["category"] == "lumber":
+        if intent["category"] == "assembly":
+            return self.assembly_estimate(command, intent)
+
+        elif intent["category"] == "specialty":
+            return self.specialty_estimate(command, intent)
+
+        elif intent["category"] == "lumber":
             return self.lumber_estimate(command, intent)
 
         elif intent["category"] == "roofing":
@@ -285,7 +305,131 @@ class CommandHandler:
         self.projects.add_estimate(estimate)
         return f'Saved to project: {project["name"]}\n{report}'
 
+    def assembly_estimate(self, command, intent):
+        if intent["type"] != "backyard studio shell":
+            return (
+                "I’m not set up for that project assembly yet. "
+                "Try estimating a backyard studio shell."
+            )
 
+        print(
+            "\nBackyard Studio Shell combines a slab, wall framing, "
+            "wall and roof sheathing, and shingles into one starter "
+            "material takeoff."
+        )
+
+        length = self.ask_positive_float("Studio length (ft): ")
+        width = self.ask_positive_float("Studio width (ft): ")
+        wall_height = self.ask_positive_float("Wall height (ft): ")
+        slab_thickness = self.ask_positive_float(
+            "Slab thickness (in): "
+        )
+
+        include_interior_finish = self.ask_input(
+            "Include insulation, drywall, and interior wall paint? "
+            "(yes/no): "
+        ).lower() in ["yes", "y"]
+
+        insulation_r_value = "R-13"
+
+        if include_interior_finish:
+            insulation_r_value = self.ask_required_text(
+                "Required wall insulation R-value from plans "
+                "(example: R-13): "
+            ).upper()
+
+        estimate = self.estimator.backyard_studio_shell(
+            length=length,
+            width=width,
+            wall_height=wall_height,
+            slab_thickness_inches=slab_thickness,
+            include_interior_finish=include_interior_finish,
+            insulation_r_value=insulation_r_value
+        )
+
+        report = create_backyard_studio_shell_report(estimate)
+
+        return self.finish_estimate(estimate, report)
+
+    def specialty_estimate(self, command, intent):
+        estimate_type = intent["type"]
+
+        if estimate_type == "siding":
+            area = self.ask_positive_float("Exterior wall area (sq ft): ")
+            siding_type = self.ask_input(
+                "Siding product/type (press Enter for generic siding): "
+            ) or "Siding"
+            estimate = self.estimator.siding(area, siding_type)
+
+        elif estimate_type == "housewrap":
+            area = self.ask_positive_float("Exterior wall area (sq ft): ")
+            estimate = self.estimator.housewrap(area)
+
+        elif estimate_type == "exterior trim":
+            length = self.ask_positive_float("Exterior trim length (LF): ")
+            trim_spec = self.ask_input(
+                "Trim product/spec (press Enter for 1x4 Exterior Trim): "
+            ) or "1x4 Exterior Trim"
+            estimate = self.estimator.exterior_trim(length, trim_spec)
+
+        elif estimate_type == "windows":
+            quantity = self.ask_positive_int("Number of windows: ")
+            window_spec = self.ask_input(
+                "Window specification (press Enter for Window Unit): "
+            ) or "Window Unit"
+            estimate = self.estimator.windows(quantity, window_spec)
+
+        elif estimate_type == "exterior doors":
+            quantity = self.ask_positive_int("Number of exterior doors: ")
+            door_spec = self.ask_input(
+                "Door specification (press Enter for Exterior Door Unit): "
+            ) or "Exterior Door Unit"
+            estimate = self.estimator.exterior_doors(quantity, door_spec)
+
+        elif estimate_type == "decking":
+            length = self.ask_positive_float("Deck length (ft): ")
+            width = self.ask_positive_float("Deck width (ft): ")
+            estimate = self.estimator.decking(length, width)
+
+        elif estimate_type == "fence":
+            length = self.ask_positive_float("Fence length (LF): ")
+            height = self.ask_positive_float("Fence height (ft): ")
+            estimate = self.estimator.fence(length, height)
+
+        elif estimate_type == "flooring":
+            area = self.ask_positive_float("Floor area (sq ft): ")
+            flooring_type = self.ask_input(
+                "Flooring product/type (press Enter for Flooring): "
+            ) or "Flooring"
+            estimate = self.estimator.flooring(area, flooring_type)
+
+        elif estimate_type == "baseboard":
+            length = self.ask_positive_float("Baseboard length (LF): ")
+            baseboard_spec = self.ask_input(
+                "Baseboard specification (press Enter for Baseboard Trim): "
+            ) or "Baseboard Trim"
+            estimate = self.estimator.baseboard(
+                length,
+                baseboard_spec=baseboard_spec
+            )
+
+        elif estimate_type == "interior doors":
+            quantity = self.ask_positive_int("Number of interior doors: ")
+            door_spec = self.ask_input(
+                "Door specification (press Enter for Interior Door Unit): "
+            ) or "Interior Door Unit"
+            estimate = self.estimator.interior_doors(quantity, door_spec)
+
+        else:
+            return (
+                "I’m not set up to estimate that item yet. "
+                "Try typing \"help\" to see what I can estimate."
+            )
+
+        return self.finish_estimate(
+            estimate,
+            create_specialty_report(estimate)
+        )
 
     def concrete_estimate(self, command,intent):
         if intent["type"] == "slab edge":
@@ -1494,6 +1638,90 @@ class CommandHandler:
 
 
 
+        elif intent["type"] in [
+                "footing system",
+                "foundation footing system",
+                "continuous footing system"
+        ]:
+            print(
+                "\nA footing system combines several continuous footing "
+                "runs into one concrete order."
+            )
+            run_type_count = self.ask_positive_int(
+                "Number of different footing run types: "
+            )
+            footing_runs = []
+
+            for number in range(1, run_type_count + 1):
+                print(f"\nFooting run type {number}")
+                footing_runs.append(
+                    {
+                        "length": self.ask_positive_float(
+                            "Continuous run length (ft): "
+                        ),
+                        "width_inches": self.ask_positive_float(
+                            "Footing width (in): "
+                        ),
+                        "depth_inches": self.ask_positive_float(
+                            "Footing depth (in): "
+                        ),
+                        "quantity": self.ask_positive_int(
+                            "Number of identical runs: "
+                        )
+                    }
+                )
+
+            reinforced = input(
+                "Is this footing system reinforced? (yes/no): "
+            ).strip().lower() in ["yes", "y"]
+            rebar = (
+                {
+                    "status": "plan_required",
+                    "source": "approved_structural_plan",
+                    "schedule": None
+                }
+                if reinforced
+                else None
+            )
+            forms = input("Include forms? (yes/no): ").strip().lower() in [
+                "yes", "y"
+            ]
+            gravel_base = input(
+                "Include gravel base? (yes/no): "
+            ).strip().lower() in ["yes", "y"]
+
+            estimate = self.estimator.concrete_footing_system(
+                footing_runs,
+                reinforced=reinforced,
+                rebar=rebar,
+                forms=forms,
+                gravel_base=gravel_base
+            )
+            run_lines = "\n".join(
+                (
+                    f"- {run['quantity']} run(s): {run['length']} ft × "
+                    f"{run['width_inches']} in wide × "
+                    f"{run['depth_inches']} in deep"
+                )
+                for run in estimate["footing_runs"]
+            )
+            takeoff_lines = "\n".join(
+                f"- {item['item']}: {item['quantity']} {item['unit']}"
+                for item in estimate["material_takeoff"]
+            )
+            report = (
+                "\nCONCRETE FOOTING SYSTEM ESTIMATE\n\n"
+                f"Footing runs: {estimate['run_count']}\n\n"
+                f"{run_lines}\n\n"
+                f"Concrete volume: {estimate['cubic_yards']} CY\n"
+                f"Order quantity: {estimate['order_quantity']} CY\n"
+                f"Waste: {estimate['waste_percent']}%\n\n"
+                "MATERIAL TAKEOFF:\n\n"
+                f"{takeoff_lines}\n\n"
+                f"Note: {estimate['structural_note']}\n"
+            )
+            return self.finish_estimate(estimate, report)
+
         elif intent["type"] == "footing":
 
             dimensions = self.extractor.extract_dimensions(command)
@@ -2526,6 +2754,193 @@ class CommandHandler:
             )
 
 
+        elif intent["type"] in [
+            "custom flatwork",
+            "flatwork"
+        ]:
+
+            print(
+                "\nCustom flatwork uses measured area and form perimeter "
+                "from plans or field layout."
+            )
+
+            area_sqft = self.ask_positive_float(
+                "Measured area (sq ft): "
+            )
+
+            perimeter_lf = self.ask_positive_float(
+                "Form perimeter (linear ft): "
+            )
+
+            thickness = self.ask_positive_float(
+                "Thickness (in): "
+            )
+
+            choice = self.choose_concrete_package(
+                """
+        How would you like to build this custom flatwork?
+
+        1. Standard flatwork package
+        2. Concrete only
+        3. Customize materials
+
+        Choice:
+        """
+            )
+
+            if choice in [
+                "1",
+                "standard",
+                "standard package"
+            ]:
+                reinforced = False
+                rebar = None
+                wire_mesh = True
+                vapor_barrier = False
+                gravel_base = True
+                control_joints = True
+                forms = True
+                build_type = "Standard Custom Flatwork Package"
+
+            elif choice in [
+                "2",
+                "concrete",
+                "concrete only",
+                "none"
+            ]:
+                reinforced = False
+                rebar = None
+                wire_mesh = False
+                vapor_barrier = False
+                gravel_base = False
+                control_joints = False
+                forms = False
+                build_type = "Concrete Only"
+
+            elif choice in [
+                "3",
+                "custom",
+                "customize"
+            ]:
+                build_type = "Custom Flatwork Package"
+
+                reinforced = input(
+                    "Is this flatwork reinforced? (yes/no): "
+                ).lower() in ["yes", "y"]
+
+                rebar = None
+
+                if reinforced:
+                    has_schedule = input(
+                        "Do you have an approved structural rebar schedule? "
+                        "(yes/no): "
+                    ).lower() in ["yes", "y"]
+
+                    if has_schedule:
+                        direction_1_size = self.ask_rebar_size(
+                            "Direction 1 bar size from approved plan: "
+                        )
+
+                        direction_1_linear_feet = (
+                            self.ask_positive_float(
+                                "Total Direction 1 rebar linear feet "
+                                "from approved plan: "
+                            )
+                        )
+
+                        direction_2_size = self.ask_rebar_size(
+                            "Direction 2 bar size from approved plan: "
+                        )
+
+                        direction_2_linear_feet = (
+                            self.ask_positive_float(
+                                "Total Direction 2 rebar linear feet "
+                                "from approved plan: "
+                            )
+                        )
+
+                        rebar = {
+                            "status": "specified",
+                            "source": "approved_structural_plan",
+                            "takeoff": [
+                                self.estimator.calculate_rebar(
+                                    direction_1_size,
+                                    direction_1_linear_feet
+                                ),
+                                self.estimator.calculate_rebar(
+                                    direction_2_size,
+                                    direction_2_linear_feet
+                                )
+                            ]
+                        }
+
+                    else:
+                        rebar = {
+                            "status": "plan_required",
+                            "source": "approved_structural_plan",
+                            "schedule": None
+                        }
+
+                wire_mesh = input(
+                    "Include wire mesh? "
+                ).lower() in ["yes", "y"]
+
+                vapor_barrier = input(
+                    "Include vapor barrier? "
+                ).lower() in ["yes", "y"]
+
+                gravel_base = input(
+                    "Include gravel base? "
+                ).lower() in ["yes", "y"]
+
+                control_joints = input(
+                    "Include control joints? "
+                ).lower() in ["yes", "y"]
+
+                forms = input(
+                    "Include forms? "
+                ).lower() in ["yes", "y"]
+
+            else:
+                print(
+                    "Invalid choice. Defaulting to concrete only."
+                )
+
+                reinforced = False
+                rebar = None
+                wire_mesh = False
+                vapor_barrier = False
+                gravel_base = False
+                control_joints = False
+                forms = False
+                build_type = "Concrete Only"
+
+            estimate = self.estimator.concrete_custom_flatwork(
+                area_sqft=area_sqft,
+                perimeter_lf=perimeter_lf,
+                thickness_inches=thickness,
+                reinforced=reinforced,
+                rebar=rebar,
+                wire_mesh=wire_mesh,
+                vapor_barrier=vapor_barrier,
+                gravel_base=gravel_base,
+                control_joints=control_joints,
+                forms=forms,
+                build_type=build_type
+            )
+
+            report = (
+                self.reports.create_custom_concrete_flatwork_report(
+                    estimate
+                )
+            )
+
+            return self.finish_estimate(
+                estimate,
+                report
+            )
+
+
         elif intent["type"] == "patio":
 
             dimensions = self.extractor.extract_dimensions(command)
@@ -3307,7 +3722,122 @@ class CommandHandler:
 
     def lumber_estimate(self, command, intent):
 
-        if intent["type"] == "framed wall":
+        if intent["type"] == "framed wall with openings":
+
+            dimensions = self.extractor.extract_dimensions(command)
+
+            length = dimensions["length"]
+            if length is None:
+                length = self.ask_positive_float(
+                    "Wall length (ft): "
+                )
+
+            height = dimensions["height"]
+            if height is None:
+                height = self.ask_positive_float(
+                    "Wall height (ft): "
+                )
+
+            quantity = self.ask_positive_int(
+                "Number of identical walls: "
+            )
+
+            opening_count = self.ask_positive_int(
+                "Number of openings in each wall: "
+            )
+
+            openings = []
+
+            for number in range(1, opening_count + 1):
+                opening_type = input(
+                    f"Opening {number} type (door/window): "
+                ).strip().lower()
+
+                while opening_type not in [
+                    "door",
+                    "window"
+                ]:
+                    print(
+                        "Please enter either door or window."
+                    )
+
+                    opening_type = input(
+                        f"Opening {number} type (door/window): "
+                    ).strip().lower()
+
+                opening_width = self.ask_positive_float(
+                    f"Opening {number} width (ft): "
+                )
+
+                opening_height = self.ask_positive_float(
+                    f"Opening {number} height (ft): "
+                )
+
+                openings.append(
+                    {
+                        "type": opening_type,
+                        "width_feet": opening_width,
+                        "height_feet": opening_height
+                    }
+                )
+
+            has_header_schedule = input(
+                "Do you have an approved header specification "
+                "for these openings? (yes/no): "
+            ).lower() in ["yes", "y"]
+
+            header_spec = None
+            header_plies = None
+
+            if has_header_schedule:
+                header_spec = input(
+                    "Header size/specification from plan "
+                    "(example: 2x10, 2x12, or LVL): "
+                ).strip()
+
+                while not header_spec:
+                    print(
+                        "Please enter the header material from the plan."
+                    )
+
+                    header_spec = input(
+                        "Header size/specification from plan: "
+                    ).strip()
+
+                header_plies = self.ask_positive_int(
+                    "Number of header plies from plan: "
+                )
+
+            else:
+                print(
+                    "No problem. I’ll estimate framing, plates, and "
+                    "window sills. Header material will remain "
+                    "plan-required and will not be added to the "
+                    "material takeoff."
+                )
+
+            estimate = self.estimator.frame_wall_with_openings(
+                length_feet=length,
+                height_feet=height,
+                openings=openings,
+                quantity=quantity,
+                header_spec=header_spec,
+                header_plies=header_plies
+            )
+
+            report = (
+                self.reports.create_frame_wall_with_openings_report(
+                    estimate
+                )
+            )
+
+            return self.finish_estimate(
+                estimate,
+                report
+            )
+
+
+        elif intent["type"] == "framed wall":
 
             dimensions = self.extractor.extract_dimensions(command)
 
@@ -3533,14 +4063,49 @@ class CommandHandler:
             width = dimensions["width"]
 
             if length is None:
-                length= self.ask_positive_float("Roof length (ft): ")
+                length = self.ask_positive_float("Building length (ft): ")
 
             if width is None:
-                width= self.ask_positive_float("Roof width (ft): ")
+                width = self.ask_positive_float("Building span / width (ft): ")
+
+            roof_type = input(
+                "Roof type (gable/shed, press Enter for gable): "
+            ).strip().lower() or "gable"
+
+            while roof_type not in ["gable", "shed"]:
+                print("Please enter gable or shed.")
+                roof_type = input(
+                    "Roof type (gable/shed, press Enter for gable): "
+                ).strip().lower() or "gable"
+
+            pitch_text = input(
+                "Roof pitch rise (example: 6 for 6/12, press Enter for 6): "
+            ).strip()
+            pitch_rise = float(pitch_text) if pitch_text else 6.0
+
+            while pitch_rise <= 0:
+                print("Roof pitch must be greater than zero.")
+                pitch_rise = self.ask_positive_float(
+                    "Roof pitch rise (example: 6 for 6/12): "
+                )
+
+            overhang_text = input(
+                "Eave/rake overhang (inches, press Enter for 12): "
+            ).strip()
+            overhang_inches = float(overhang_text) if overhang_text else 12.0
+
+            while overhang_inches < 0:
+                print("Overhang cannot be negative.")
+                overhang_inches = float(input(
+                    "Eave/rake overhang (inches): "
+                ).strip())
 
             estimate = self.estimator.roof_sheathing(
                 length,
-                width
+                width,
+                roof_type=roof_type,
+                pitch_rise=pitch_rise,
+                overhang_inches=overhang_inches
             )
 
             report = self.reports.create_roof_sheathing_report(estimate)
@@ -3992,15 +4557,54 @@ class CommandHandler:
 
             length = dimensions["length"]
             if length is None:
-                length= self.ask_positive_float("Length (ft): ")
+                length = self.ask_positive_float("Building length (ft): ")
 
             width = dimensions["width"]
             if width is None:
-                width= self.ask_positive_float("Width (ft): ")
+                width = self.ask_positive_float("Building span / width (ft): ")
+
+            roof_type = input(
+                "Roof type (gable/shed, press Enter for gable): "
+            ).strip().lower() or "gable"
+
+            while roof_type not in ["gable", "shed"]:
+                print("Please enter gable or shed.")
+                roof_type = input(
+                    "Roof type (gable/shed, press Enter for gable): "
+                ).strip().lower() or "gable"
+
+            while True:
+                pitch_text = input(
+                    "Roof pitch rise (example: 6 for 6/12, press Enter for 6): "
+                ).strip()
+                try:
+                    pitch_rise = float(pitch_text) if pitch_text else 6.0
+                    if pitch_rise > 0:
+                        break
+                except ValueError:
+                    pass
+                print("Enter a positive number, such as 6.")
+
+            while True:
+                overhang_text = input(
+                    "Eave/rake overhang (inches, press Enter for 12): "
+                ).strip()
+                try:
+                    overhang_inches = (
+                        float(overhang_text) if overhang_text else 12.0
+                    )
+                    if overhang_inches >= 0:
+                        break
+                except ValueError:
+                    pass
+                print("Enter zero or a positive number of inches.")
 
             estimate = self.estimator.roofing.shingles(
                 length,
-                width
+                width,
+                roof_type=roof_type,
+                pitch_rise=pitch_rise,
+                overhang_inches=overhang_inches
             )
 
             report = self.reports.create_shingle_report(estimate)
@@ -4012,15 +4616,54 @@ class CommandHandler:
 
             length = dimensions["length"]
             if length is None:
-                length= self.ask_positive_float("Length (ft): ")
+                length = self.ask_positive_float("Building length (ft): ")
 
             width = dimensions["width"]
             if width is None:
-                width= self.ask_positive_float("Width (ft): ")
+                width = self.ask_positive_float("Building span / width (ft): ")
+
+            roof_type = input(
+                "Roof type (gable/shed, press Enter for gable): "
+            ).strip().lower() or "gable"
+
+            while roof_type not in ["gable", "shed"]:
+                print("Please enter gable or shed.")
+                roof_type = input(
+                    "Roof type (gable/shed, press Enter for gable): "
+                ).strip().lower() or "gable"
+
+            while True:
+                pitch_text = input(
+                    "Roof pitch rise (example: 6 for 6/12, press Enter for 6): "
+                ).strip()
+                try:
+                    pitch_rise = float(pitch_text) if pitch_text else 6.0
+                    if pitch_rise > 0:
+                        break
+                except ValueError:
+                    pass
+                print("Enter a positive number, such as 6.")
+
+            while True:
+                overhang_text = input(
+                    "Eave/rake overhang (inches, press Enter for 12): "
+                ).strip()
+                try:
+                    overhang_inches = (
+                        float(overhang_text) if overhang_text else 12.0
+                    )
+                    if overhang_inches >= 0:
+                        break
+                except ValueError:
+                    pass
+                print("Enter zero or a positive number of inches.")
 
             estimate = self.estimator.roofing.underlayment(
                 length,
-                width
+                width,
+                roof_type=roof_type,
+                pitch_rise=pitch_rise,
+                overhang_inches=overhang_inches
             )
 
             report = self.reports.create_underlayment_report(estimate)

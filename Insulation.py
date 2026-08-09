@@ -1,11 +1,22 @@
 import math
 from Settings import Settings
+from EstimatingPreferences import EstimatingPreferences
 
 
 class InsulationEstimator:
 
     def __init__(self):
         self.name = "Insulation Estimator"
+
+    def _get_insulation_waste_percent(self, waste_percent):
+        if waste_percent is not None:
+            return waste_percent
+
+        preferences = EstimatingPreferences()
+
+        return preferences.get(
+            "insulation_waste_percent"
+        )
 
     def batt_insulation(
             self,
@@ -14,8 +25,12 @@ class InsulationEstimator:
             r_value="R-13",
             stud_spacing=Settings.BATT_INSULATION_STUD_SPACING_INCHES,
             quantity=1,
-            waste_percent=Settings.INSULATION_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_insulation_waste_percent(
+            waste_percent
+        )
+
         area = length * height * quantity
 
         coverage_per_batt = (
@@ -68,8 +83,10 @@ class InsulationEstimator:
             coverage_per_bag=(
                     Settings.BLOWN_INSULATION_COVERAGE_PER_BAG_SQFT
             ),
-            waste_percent=Settings.INSULATION_WASTE_PERCENT
-    ):
+            waste_percent=None):
+        waste_percent = self._get_insulation_waste_percent(
+            waste_percent
+        )
         area = length * width
 
         bags = math.ceil(
@@ -105,8 +122,10 @@ class InsulationEstimator:
             height,
             thickness_inches,
             coverage_per_kit_sqft,
-            waste_percent=Settings.INSULATION_WASTE_PERCENT
-    ):
+            waste_percent=None):
+        waste_percent = self._get_insulation_waste_percent(
+            waste_percent
+        )
         area = length * height
 
         kits = math.ceil(

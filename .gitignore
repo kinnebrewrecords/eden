@@ -8,3 +8,6 @@ projects.json
 memory.json
 user_profile.json
 *_backup.json
+pricing.json
+estimating_preferences.json
+.streamlit/secrets.toml

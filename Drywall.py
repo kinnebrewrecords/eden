@@ -1,5 +1,6 @@
 import math
 from Settings import Settings
+from EstimatingPreferences import EstimatingPreferences
 
 
 class DrywallEstimator:
@@ -7,13 +8,28 @@ class DrywallEstimator:
     def __init__(self):
         self.name = "Drywall Estimator"
 
+
+    def _get_drywall_waste_percent(self, waste_percent):
+        if waste_percent is not None:
+            return waste_percent
+
+        preferences = EstimatingPreferences()
+
+        return preferences.get(
+            "drywall_waste_percent"
+        )
+
     def wall_drywall(
             self,
             length,
             height,
             quantity=1,
-            waste_percent=Settings.DRYWALL_WASTE_PERCENT
-    ):
+            waste_percent=None    ):
+
+        waste_percent = self._get_drywall_waste_percent(
+            waste_percent
+        )
+
         area = length * height * quantity
 
         sheets = math.ceil(
@@ -42,13 +58,17 @@ class DrywallEstimator:
             "material_takeoff": material_takeoff
         }
 
-
     def ceiling_drywall(
             self,
             length,
             width,
-            waste_percent=Settings.DRYWALL_WASTE_PERCENT
+            quantity=1,
+            waste_percent=None
     ):
+        waste_percent = self._get_drywall_waste_percent(
+            waste_percent
+        )
+
         area = length * width
 
         sheets = math.ceil(
