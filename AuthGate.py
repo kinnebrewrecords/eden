@@ -3,12 +3,44 @@
 import streamlit as st
 
 from CloudWorkspace import activate_workspace_for_current_user
+from EdenAccess import current_access
 from EdenAuth import current_user, sign_in
 
 
 def require_eden_login():
     """Stop protected pages until the visitor signs into an Eden account."""
-    if current_user():
+    user = current_user()
+
+    if user:
+        access = current_access()
+
+        if not access.get("has_access"):
+            st.markdown(
+                """
+                <section class="eden-hero">
+                    <p class="eden-hero-kicker">Eden access required</p>
+                    <h1>Your account is signed in, but does not have Eden access yet.</h1>
+                    <p class="eden-hero-subtitle">
+                        Start a subscription or redeem your private beta code
+                        on the Eden website, then sign in again.
+                    </p>
+                </section>
+                """,
+                unsafe_allow_html=True
+            )
+
+            if access.get("error"):
+                st.error(
+                    "Eden could not verify account access. Make sure the "
+                    "beta access SQL setup has been run in Supabase."
+                )
+
+            st.caption(
+                "Open the Eden website Account & Billing page to redeem "
+                "your code or start a subscription."
+            )
+            st.stop()
+
         try:
             activate_workspace_for_current_user()
         except Exception:

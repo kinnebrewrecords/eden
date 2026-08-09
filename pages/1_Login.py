@@ -1,0 +1,40 @@
+import streamlit as st
+
+from EdenAuth import current_user, sign_in, sign_out
+from EdenTheme import apply_eden_theme
+
+
+st.set_page_config(page_title="Sign in to Eden", layout="wide")
+apply_eden_theme()
+
+st.title("Sign in to Eden")
+st.caption("Use the Eden account that has your subscription or beta access.")
+
+user = current_user()
+
+if user:
+    st.info(f"This browser is currently signed in as {user['email']}.")
+    st.caption("To protect project privacy, sign out before using a different Eden account.")
+
+    if st.button("Sign Out and Use a Different Account", type="primary"):
+        sign_out()
+        st.rerun()
+
+    if st.button("Continue to My Eden Workspace"):
+        st.switch_page("Frontend.py")
+
+    st.stop()
+
+with st.form("website_eden_sign_in_form"):
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
+    submit = st.form_submit_button("Sign In to Eden")
+
+if submit:
+    try:
+        sign_in(email.strip(), password)
+        st.switch_page("Frontend.py")
+    except Exception as error:
+        st.error(f"Could not sign in: {error}")
+
+st.caption("Create your account on the Eden website after receiving access.")
