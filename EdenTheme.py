@@ -80,6 +80,77 @@ def apply_eden_theme():
                 overflow: hidden;
             }
 
+            .eden-tour {
+                margin: 1.8rem 0 1rem;
+                padding: 1.45rem 1.6rem;
+                background: linear-gradient(135deg, rgba(21, 34, 50, 0.88), rgba(13, 21, 32, 0.68));
+                border: 1px solid rgba(125, 211, 252, 0.34);
+                border-radius: 18px;
+                box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+            }
+
+            .eden-tour h2 {
+                margin: 0.2rem 0 0.35rem;
+                color: var(--eden-text);
+            }
+
+            .eden-tour p {
+                color: var(--eden-muted);
+                max-width: 760px;
+                margin: 0;
+            }
+
+            .eden-tour-kicker {
+                color: var(--eden-blue-soft) !important;
+                font-size: 0.72rem;
+                font-weight: 800;
+                letter-spacing: 0.14em;
+            }
+
+            .eden-tour-card {
+                min-height: 178px;
+                margin-top: 0.75rem;
+                padding: 1.15rem;
+                background: rgba(13, 21, 32, 0.78);
+                border: 1px solid rgba(36, 56, 82, 0.95);
+                border-radius: 14px;
+            }
+
+            .eden-tour-card-start {
+                border-color: rgba(56, 189, 248, 0.7);
+                box-shadow: 0 0 22px rgba(56, 189, 248, 0.12);
+            }
+
+            .eden-tour-card h3 {
+                margin: 0.8rem 0 0.45rem;
+                font-size: 1rem;
+            }
+
+            .eden-tour-card p {
+                color: var(--eden-muted);
+                font-size: 0.86rem;
+                line-height: 1.5;
+            }
+
+            .eden-tour-number {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 27px;
+                height: 27px;
+                border-radius: 50%;
+                background: rgba(56, 189, 248, 0.15);
+                border: 1px solid rgba(56, 189, 248, 0.62);
+                color: var(--eden-blue-soft);
+                font-weight: 800;
+            }
+
+            .eden-tour-arrow {
+                color: var(--eden-blue-soft);
+                font-size: 1.2rem;
+                font-weight: 800;
+            }
+
             [data-testid="stAppViewContainer"] h1,
             [data-testid="stAppViewContainer"] h2,
             [data-testid="stAppViewContainer"] h3 {

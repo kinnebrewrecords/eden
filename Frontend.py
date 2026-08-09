@@ -25,6 +25,7 @@ from Sidebar import render_sidebar
 from EdenTheme import apply_eden_theme
 from PricingCatalog import PricingCatalog
 from AuthGate import require_eden_login
+from EdenAuth import current_user
 
 
 st.set_page_config(
@@ -32,7 +33,10 @@ st.set_page_config(
     layout="wide"
 )
 
-if not st.session_state.get("eden_splash_seen"):
+if (
+        not current_user()
+        and not st.session_state.get("eden_splash_seen")
+):
     st.session_state["eden_splash_active"] = True
 
 concrete = ConcreteEstimator()
@@ -196,8 +200,14 @@ if not profile.get("name") or not profile.get("company"):
 st.markdown(
     f"""
     <section class="eden-welcome-bubble">
-        <p class="eden-welcome-kicker">Your Eden workspace</p>
-        <h1 class="eden-welcome-title">Welcome back, {escape(profile['name'])}</h1>
+        <p class="eden-welcome-kicker">{
+            "Let's build your workspace" if not profile.get("onboarding_complete")
+            else "Your Eden workspace"
+        }</p>
+        <h1 class="eden-welcome-title">{
+            "Welcome to Eden" if not profile.get("onboarding_complete")
+            else "Welcome back"
+        }, {escape(profile['name'])}</h1>
         <p class="eden-welcome-company">
             {escape(profile['company'])} &bull; Construction Material Estimating
         </p>
@@ -211,16 +221,81 @@ _ = (
     )
 
 if not profile.get("onboarding_complete"):
-    st.info(
-        "Welcome to Eden. Here is how to get started."
+    st.markdown(
+        """
+        <section class="eden-tour">
+            <p class="eden-tour-kicker">FIRST PROJECT GUIDE</p>
+            <h2>Start with a project. Eden will guide the rest.</h2>
+            <p>Follow these steps once, then estimate, schedule, price, and
+            prepare a customer-ready proposal from one workspace.</p>
+        </section>
+        """,
+        unsafe_allow_html=True
     )
 
-    st.markdown("""
-1. Create a project in the Projects sidebar.
-2. Open the Chat page.
-3. Ask Eden to estimate an item, such as `estimate a slab`.
-4. Use `show project` to review your material takeoff.
-""")
+    tour_project, tour_chat, tour_schedule, tour_review = st.columns(4)
+
+    with tour_project:
+        st.markdown(
+            """
+            <div class="eden-tour-card eden-tour-card-start">
+                <span class="eden-tour-number">1</span>
+                <h3>Create a project</h3>
+                <p>Use <strong>Manage Projects</strong> in the sidebar.
+                <span class="eden-tour-arrow">&larr;</span></p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with tour_chat:
+        st.markdown(
+            """
+            <div class="eden-tour-card">
+                <span class="eden-tour-number">2</span>
+                <h3>Create an estimate</h3>
+                <p>Describe the work in plain language and Eden asks for
+                the missing details.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        st.page_link(
+            "pages/Chat.py",
+            label="Open Chat with Eden",
+            icon=":material/chat:"
+        )
+
+    with tour_schedule:
+        st.markdown(
+            """
+            <div class="eden-tour-card">
+                <span class="eden-tour-number">3</span>
+                <h3>Plan the work</h3>
+                <p>Add phases, tasks, crew assignments, equipment, and
+                planned labor hours.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        st.page_link(
+            "pages/5_Schedule.py",
+            label="Open Project Schedule",
+            icon=":material/calendar_month:"
+        )
+
+    with tour_review:
+        st.markdown(
+            """
+            <div class="eden-tour-card">
+                <span class="eden-tour-number">4</span>
+                <h3>Review your bid</h3>
+                <p>Return here for material costs, labor, markup, and
+                customer PDFs.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     if st.button("Got It — Start Estimating"):
         complete_onboarding()
