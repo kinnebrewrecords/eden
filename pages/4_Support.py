@@ -1,5 +1,6 @@
 from datetime import datetime
-from urllib.parse import quote
+from email.message import EmailMessage
+import smtplib
 
 import streamlit as st
 from EdenTheme import apply_eden_theme
@@ -8,7 +9,26 @@ from AuthGate import require_eden_login
 from EdenAuth import current_user
 
 
-SUPPORT_EMAIL = "kinnebrewrecords@gmail.com"
+SUPPORT_EMAIL = "eden.intelligence.support@gmail.com"
+
+
+def send_support_report(report, issue_type, reply_email):
+    """Send a submitted support report to Eden's private support inbox."""
+    app_password = st.secrets["support"]["gmail_app_password"]
+
+    message = EmailMessage()
+    message["Subject"] = f"Eden Support: {issue_type}"
+    message["From"] = SUPPORT_EMAIL
+    message["To"] = SUPPORT_EMAIL
+
+    if reply_email.strip():
+        message["Reply-To"] = reply_email.strip()
+
+    message.set_content(report.strip())
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(SUPPORT_EMAIL, app_password)
+        server.send_message(message)
 
 
 st.set_page_config(
@@ -27,7 +47,6 @@ st.title("Support")
 st.caption(
     "Get help with Eden or create a report for a problem you found."
 )
-st.caption(f"Support email: {SUPPORT_EMAIL}")
 
 st.subheader("Before you report an issue")
 
@@ -87,25 +106,19 @@ Description:
 {description}
 """
 
-        subject = quote(f"Eden Support: {issue_type}")
-        body = quote(report.strip())
-        email_url = (
-            f"mailto:{SUPPORT_EMAIL}?subject={subject}&body={body}"
-        )
-
-        st.success("Your support report is ready to send.")
-
-        st.link_button(
-            "Email Report to Eden Support",
-            email_url,
-            icon=":material/send:",
-            type="primary"
-        )
-
-        st.caption(
-            "This opens your email app with the report addressed to Eden "
-            "Support. Review it, then press Send."
-        )
+        try:
+            send_support_report(report, issue_type, email)
+            st.success("Your support report was sent to Eden Support.")
+        except KeyError:
+            st.error(
+                "Support delivery is not configured yet. Please try again "
+                "later."
+            )
+        except Exception:
+            st.error(
+                "Eden could not send your report right now. Please try "
+                "again later."
+            )
 
         st.download_button(
             "Download a Copy",
