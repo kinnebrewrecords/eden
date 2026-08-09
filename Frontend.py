@@ -181,7 +181,8 @@ if not profile.get("name") or not profile.get("company"):
                 pricing.add_supplier(preferred_supplier)
 
             if price_setup_choice == "Now":
-                st.session_state["eden_add_prices_next"] = True
+                st.session_state["eden_open_pricing_setup"] = True
+                st.switch_page("pages/3_Settings.py")
 
             st.rerun()
 
@@ -191,12 +192,6 @@ if not profile.get("name") or not profile.get("company"):
             )
 
     st.stop()
-
-if st.session_state.pop("eden_add_prices_next", False):
-    st.info(
-        "Company defaults saved. Open Settings → Regional Pricing "
-        "to add your supplier prices."
-    )
 
 st.markdown(
     f"""

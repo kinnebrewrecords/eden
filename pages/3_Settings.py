@@ -126,13 +126,27 @@ for setting_name in dir(Settings):
             setting_name
         )
 
-profile_tab, defaults_tab, pricing_tab = st.tabs(
-    [
-        "Company Profile",
-        "Estimating Defaults",
-        "Regional Pricing"
-    ]
+open_pricing_setup = st.session_state.pop(
+    "eden_open_pricing_setup",
+    False
 )
+
+if open_pricing_setup:
+    pricing_tab, profile_tab, defaults_tab = st.tabs(
+        [
+            "Regional Pricing",
+            "Company Profile",
+            "Estimating Defaults"
+        ]
+    )
+else:
+    profile_tab, defaults_tab, pricing_tab = st.tabs(
+        [
+            "Company Profile",
+            "Estimating Defaults",
+            "Regional Pricing"
+        ]
+    )
 
 with profile_tab:
     st.subheader("Company Profile")
@@ -535,6 +549,11 @@ with defaults_tab:
 
 with pricing_tab:
     st.subheader("Regional Pricing")
+    if open_pricing_setup:
+        st.success(
+            "Company defaults saved. Add your first supplier material "
+            "price below, or return later from Settings."
+        )
     st.caption(
         "Store supplier-specific material costs by market or delivery zone."
     )
