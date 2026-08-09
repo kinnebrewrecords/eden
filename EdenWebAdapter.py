@@ -2,6 +2,8 @@ from contextlib import redirect_stdout
 from io import StringIO
 from unittest.mock import patch
 
+import streamlit as st
+
 from Commands import EstimateChange
 from Eden import Eden
 
@@ -10,7 +12,24 @@ class EdenQuestion(Exception):
     pass
 
 
-eden = Eden()
+EDEN_ENGINE_KEY = "eden_web_engine"
+EDEN_ENGINE_USER_KEY = "eden_web_engine_user_id"
+
+
+def get_eden_engine():
+    """Return a chat engine tied to the current signed-in workspace."""
+    session = st.session_state.get("eden_supabase_session", {})
+    user_id = session.get("user_id") if isinstance(session, dict) else None
+
+    engine = st.session_state.get(EDEN_ENGINE_KEY)
+    engine_user_id = st.session_state.get(EDEN_ENGINE_USER_KEY)
+
+    if engine is None or engine_user_id != user_id:
+        engine = Eden()
+        st.session_state[EDEN_ENGINE_KEY] = engine
+        st.session_state[EDEN_ENGINE_USER_KEY] = user_id
+
+    return engine
 
 
 def create_browser_input(answers):
@@ -66,6 +85,7 @@ def run_eden(command, answers=None):
 
     browser_input = create_browser_input(answers)
     terminal_output = StringIO()
+    eden = get_eden_engine()
 
     try:
         with redirect_stdout(terminal_output):

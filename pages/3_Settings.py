@@ -68,8 +68,7 @@ st.markdown(
 )
 
 render_sidebar(
-    show_command_center=False,
-    show_project_manager=False
+    show_command_center=False
 )
 
 st.title("Settings")
