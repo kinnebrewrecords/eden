@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
+from WorkspaceFiles import workspace_file
+
 
 class ProjectManager:
     PROJECT_RECOVERY_DAYS = 30
@@ -51,7 +53,7 @@ class ProjectManager:
     ]
 
     def __init__(self):
-        self.file_path = Path(__file__).with_name("projects.json")
+        self.file_path = workspace_file(__file__, "projects.json")
         self.data = {
             "projects": {},
             "active_project": None,

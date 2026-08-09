@@ -1,10 +1,11 @@
 import json
 from pathlib import Path
 
+from WorkspaceFiles import workspace_file
 
-profile_file = Path(__file__).with_name(
-    "user_profile.json"
-)
+
+def _profile_file():
+    return workspace_file(__file__, "user_profile.json")
 
 upload_folder = Path(__file__).with_name(
     "uploads"
@@ -12,6 +13,8 @@ upload_folder = Path(__file__).with_name(
 
 
 def load_profile():
+    profile_file = _profile_file()
+
     if not profile_file.exists():
         return {}
 
@@ -28,6 +31,7 @@ def save_profile(
         default_region="",
         preferred_supplier=""
 ):
+    profile_file = _profile_file()
     existing_profile = load_profile()
 
     profile = {
@@ -59,6 +63,7 @@ def save_profile(
 
 
 def complete_onboarding():
+    profile_file = _profile_file()
     profile = load_profile()
 
     profile["onboarding_complete"] = True
@@ -92,6 +97,7 @@ def save_avatar(uploaded_file):
     with open(avatar_file, "wb") as file:
         file.write(uploaded_file.getbuffer())
 
+    profile_file = _profile_file()
     profile = load_profile()
 
     profile["avatar_path"] = str(

@@ -10,4 +10,6 @@ user_profile.json
 *_backup.json
 pricing.json
 estimating_preferences.json
+.eden_workspaces/
+.eden_legacy_workspace_owner.json
 .streamlit/secrets.toml

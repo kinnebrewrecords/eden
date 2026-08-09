@@ -2,6 +2,8 @@ import json
 from datetime import date
 from pathlib import Path
 
+from WorkspaceFiles import workspace_file
+
 
 class PricingCatalog:
     STARTER_REGIONS = [
@@ -16,7 +18,7 @@ class PricingCatalog:
     ]
 
     def __init__(self):
-        self.file_path = Path(__file__).with_name("pricing.json")
+        self.file_path = workspace_file(__file__, "pricing.json")
         self.data = {
             "labor_rate_per_hour": 0.0,
             "labor_rates": {},

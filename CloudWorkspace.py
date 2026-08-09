@@ -8,6 +8,7 @@ from pathlib import Path
 import streamlit as st
 
 from EdenAuth import get_authenticated_workspace_store
+from WorkspaceFiles import workspace_file
 
 
 WORKSPACE_FILES = [
@@ -20,7 +21,7 @@ WORKSPACE_FILES = [
 
 
 def _file_path(file_name):
-    return Path(__file__).with_name(file_name)
+    return workspace_file(__file__, file_name)
 
 
 def export_local_workspace():

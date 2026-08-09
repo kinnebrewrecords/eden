@@ -10,6 +10,7 @@ from SupabaseStorage import create_workspace_store
 SESSION_KEY = "eden_supabase_session"
 COOKIE_KEY = "eden-auth-session"
 COOKIE_MANAGER_KEY = "eden_cookie_manager"
+COOKIE_LAST_VALUE_KEY = "eden_cookie_last_value"
 SIGNED_OUT_KEY = "eden_signed_out"
 LOGOUT_QUERY_KEY = "eden_logout"
 
@@ -49,8 +50,17 @@ def _save_session_cookie(data):
     if cookies is None:
         return
 
-    cookies[COOKIE_KEY] = json.dumps(data)
+    value = json.dumps(data)
+
+    # The cookie component may only be saved once for a given change during
+    # a Streamlit render.  Re-saving identical data creates a duplicate
+    # component key and prevents sign-in from completing.
+    if st.session_state.get(COOKIE_LAST_VALUE_KEY) == value:
+        return
+
+    cookies[COOKIE_KEY] = value
     cookies.save()
+    st.session_state[COOKIE_LAST_VALUE_KEY] = value
 
 
 def _clear_session_cookie():
@@ -59,9 +69,14 @@ def _clear_session_cookie():
     if cookies is None:
         return
 
+    if st.session_state.get(COOKIE_LAST_VALUE_KEY) is None:
+        return
+
     if COOKIE_KEY in cookies:
         del cookies[COOKIE_KEY]
         cookies.save()
+
+    st.session_state[COOKIE_LAST_VALUE_KEY] = None
 
 
 def _store_session(session):
@@ -86,6 +101,7 @@ def current_user():
         # A logout rerun can occur before the browser receives the cookie
         # deletion. Run the cleanup again from the login screen, where no
         # cloud refresh can compete with it.
+        st.query_params.pop(LOGOUT_QUERY_KEY, None)
         _clear_session_cookie()
         return None
 
@@ -105,7 +121,10 @@ def current_user():
     raw_session = cookies.get(COOKIE_KEY)
 
     if not raw_session:
+        st.session_state[COOKIE_LAST_VALUE_KEY] = None
         return None
+
+    st.session_state[COOKIE_LAST_VALUE_KEY] = raw_session
 
     try:
         session = json.loads(raw_session)

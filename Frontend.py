@@ -39,12 +39,6 @@ if (
 ):
     st.session_state["eden_splash_active"] = True
 
-concrete = ConcreteEstimator()
-lumber = LumberEstimator()
-pricing = PricingCatalog()
-pricing.add_starter_regions()
-
-
 def save_estimate(estimate):
     projects.add_estimate(estimate)
 
@@ -128,6 +122,11 @@ if st.session_state.get("eden_splash_active"):
     st.rerun()
 
 require_eden_login()
+
+concrete = ConcreteEstimator()
+lumber = LumberEstimator()
+pricing = PricingCatalog()
+pricing.add_starter_regions()
 
 projects = render_sidebar()
 

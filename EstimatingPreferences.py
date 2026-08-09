@@ -2,11 +2,13 @@ import json
 from pathlib import Path
 
 from Settings import Settings
+from WorkspaceFiles import workspace_file
 
 
 class EstimatingPreferences:
     def __init__(self):
-        self.file_path = Path(__file__).with_name(
+        self.file_path = workspace_file(
+            __file__,
             "estimating_preferences.json"
         )
 
