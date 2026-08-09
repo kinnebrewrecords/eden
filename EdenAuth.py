@@ -12,7 +12,8 @@ COOKIE_KEY = "eden-auth-session"
 COOKIE_MANAGER_KEY = "eden_cookie_manager"
 COOKIE_LAST_VALUE_KEY = "eden_cookie_last_value"
 SIGNED_OUT_KEY = "eden_signed_out"
-LOGOUT_QUERY_KEY = "eden_logout"
+WORKSPACE_STORE_KEY = "eden_workspace_store"
+WORKSPACE_STORE_USER_KEY = "eden_workspace_store_user_id"
 
 
 def _get_cookie_manager():
@@ -90,21 +91,12 @@ def _store_session(session):
         "refresh_token": session.refresh_token
     }
     st.session_state.pop(SIGNED_OUT_KEY, None)
-    st.query_params.pop(LOGOUT_QUERY_KEY, None)
     st.session_state[SESSION_KEY] = data
     _save_session_cookie(data)
     return data
 
 
 def current_user():
-    if st.query_params.get(LOGOUT_QUERY_KEY) == "1":
-        # A logout rerun can occur before the browser receives the cookie
-        # deletion. Run the cleanup again from the login screen, where no
-        # cloud refresh can compete with it.
-        st.query_params.pop(LOGOUT_QUERY_KEY, None)
-        _clear_session_cookie()
-        return None
-
     if st.session_state.get(SIGNED_OUT_KEY):
         return None
 
@@ -177,8 +169,26 @@ def sign_out():
     # or the browser-cookie update needs an extra render to complete.
     session = st.session_state.get(SESSION_KEY)
     st.session_state[SIGNED_OUT_KEY] = True
-    st.session_state.pop(SESSION_KEY, None)
-    st.query_params[LOGOUT_QUERY_KEY] = "1"
+
+    # Account-specific UI, chat, cloud, and project context must never be
+    # carried into the next sign-in in the same browser session.
+    for key in [
+            SESSION_KEY,
+            WORKSPACE_STORE_KEY,
+            WORKSPACE_STORE_USER_KEY,
+            "eden_workspace_loaded_for_user",
+            "eden_cloud_workspace_hash",
+            "eden_project_workspace_path",
+            "eden_active_project_name",
+            "eden_project_switcher",
+            "eden_web_engine",
+            "eden_web_engine_user_id",
+            "eden_browser_messages",
+            "eden_pending_command",
+            "eden_pending_answers",
+            "eden_ai"
+    ]:
+        st.session_state.pop(key, None)
 
     _clear_session_cookie()
 
@@ -201,6 +211,12 @@ def get_authenticated_workspace_store():
     if not session:
         return None, None
 
+    cached_store = st.session_state.get(WORKSPACE_STORE_KEY)
+    cached_user_id = st.session_state.get(WORKSPACE_STORE_USER_KEY)
+
+    if cached_store is not None and cached_user_id == session["user_id"]:
+        return cached_store, session
+
     store = create_workspace_store()
 
     try:
@@ -221,5 +237,10 @@ def get_authenticated_workspace_store():
         st.session_state.pop(SESSION_KEY, None)
         _clear_session_cookie()
         return None, None
+
+    st.session_state[WORKSPACE_STORE_KEY] = store
+    st.session_state[WORKSPACE_STORE_USER_KEY] = (
+        updated_session["user_id"]
+    )
 
     return store, updated_session

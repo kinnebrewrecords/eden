@@ -2,12 +2,19 @@
 
 import streamlit as st
 
+from CloudWorkspace import activate_workspace_for_current_user
 from EdenAuth import current_user, sign_in
 
 
 def require_eden_login():
     """Stop protected pages until the visitor signs into an Eden account."""
     if current_user():
+        try:
+            activate_workspace_for_current_user()
+        except Exception:
+            # A temporary cloud problem must not prevent a signed-in user
+            # from reaching their already-loaded local workspace.
+            pass
         return
 
     st.markdown(

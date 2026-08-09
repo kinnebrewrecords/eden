@@ -49,6 +49,28 @@ def backup_local_workspace(store, user_id):
     return workspace
 
 
+def activate_workspace_for_current_user():
+    """Load the signed-in account's cloud workspace before rendering Eden."""
+    store, session = get_authenticated_workspace_store()
+
+    if store is None or session is None:
+        return False
+
+    user_id = session["user_id"]
+
+    if st.session_state.get("eden_workspace_loaded_for_user") == user_id:
+        return True
+
+    workspace = store.load_workspace(user_id)
+
+    if workspace and isinstance(workspace.get("files"), dict):
+        _restore_workspace_files(workspace["files"], create_backups=False)
+
+    st.session_state["eden_workspace_loaded_for_user"] = user_id
+    st.session_state.pop("eden_cloud_workspace_hash", None)
+    return True
+
+
 def auto_backup_if_needed():
     """Sync changed local JSON data once per Streamlit rerun.
 
@@ -87,6 +109,15 @@ def restore_local_workspace(store, user_id):
     if not isinstance(files, dict):
         return False, "The cloud backup format is not valid."
 
+    restored_files = _restore_workspace_files(files, create_backups=True)
+
+    if not restored_files:
+        return False, "The cloud backup did not contain Eden workspace data."
+
+    return True, restored_files
+
+
+def _restore_workspace_files(files, create_backups):
     restored_files = []
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -96,7 +127,7 @@ def restore_local_workspace(store, user_id):
 
         path = _file_path(file_name)
 
-        if path.exists():
+        if create_backups and path.exists():
             backup_path = path.with_name(
                 f"{path.stem}_cloud_restore_backup_{timestamp}.json"
             )
@@ -111,7 +142,4 @@ def restore_local_workspace(store, user_id):
         )
         restored_files.append(file_name)
 
-    if not restored_files:
-        return False, "The cloud backup did not contain Eden workspace data."
-
-    return True, restored_files
+    return restored_files
