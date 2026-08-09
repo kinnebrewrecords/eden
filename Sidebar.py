@@ -12,6 +12,9 @@ def render_sidebar(
         show_project_manager=True
 ):
     projects = ProjectManager()
+    st.session_state["eden_project_workspace_path"] = str(
+        projects.file_path
+    )
 
     if st.session_state.get("eden_splash_active"):
         return projects

@@ -1,5 +1,6 @@
 from contextlib import redirect_stdout
 from io import StringIO
+from pathlib import Path
 from unittest.mock import patch
 
 import streamlit as st
@@ -87,9 +88,15 @@ def run_eden(command, answers=None):
     terminal_output = StringIO()
     eden = get_eden_engine()
 
-    # The sidebar can switch projects after the chat engine was created.
-    # Refresh the manager from disk so every finished estimate uses the
-    # project currently selected in the shared sidebar.
+    # Use the exact same workspace file as the current sidebar. This keeps
+    # Chat project commands and estimate saves aligned with the dashboard.
+    workspace_path = st.session_state.get(
+        "eden_project_workspace_path"
+    )
+
+    if workspace_path:
+        eden.projects.file_path = Path(workspace_path)
+
     eden.projects.load()
 
     selected_project = st.session_state.get(
