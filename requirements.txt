@@ -2,3 +2,4 @@ streamlit
 reportlab
 supabase
 streamlit-cookies-manager
+openai
