@@ -21,34 +21,6 @@ def render_sidebar(
     if not signed_in_user:
         return projects
 
-    logo_path = (
-        Path(__file__).with_name("assets") /
-        "eden_logo.png"
-    )
-
-    if logo_path.exists():
-        st.sidebar.image(
-            str(logo_path),
-            use_container_width=True
-        )
-
-    st.sidebar.caption(
-        f"Signed in as {signed_in_user.get('email', 'Eden user')}"
-    )
-
-    # Keep this above cloud backup. Signing out must be able to save the
-    # cleared browser cookie before any automatic session refresh runs.
-    if st.sidebar.button(
-            "Sign Out",
-            icon=":material/logout:",
-            use_container_width=True,
-            key="eden_sign_out_button"
-    ):
-        sign_out()
-        st.rerun()
-
-    st.sidebar.divider()
-
     try:
         cloud_status = auto_backup_if_needed()
     except Exception:
@@ -256,6 +228,30 @@ def render_sidebar(
         "pages/4_Support.py",
         label="Support",
         icon=":material/support_agent:"
+    )
+
+    st.sidebar.divider()
+    st.sidebar.caption(
+        f"Signed in as {signed_in_user.get('email', 'Eden user')}"
+    )
+
+    logo_path = (
+        Path(__file__).with_name("assets") /
+        "eden_logo.png"
+    )
+
+    if logo_path.exists():
+        st.sidebar.image(
+            str(logo_path),
+            use_container_width=True
+        )
+
+    st.sidebar.button(
+        "Sign Out",
+        icon=":material/logout:",
+        use_container_width=True,
+        key="eden_sign_out_button",
+        on_click=sign_out
     )
 
     return projects
