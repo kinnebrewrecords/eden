@@ -203,10 +203,11 @@ def render_sidebar(
     st.sidebar.divider()
     st.sidebar.subheader("Workspace")
 
-    st.sidebar.page_link(
-        "Frontend.py",
-        label="Dashboard",
-        icon=":material/dashboard:"
+     st.sidebar.link_button(
+        "Dashboard",
+        url="/",
+        icon=":material/dashboard:",
+        use_container_width=True
     )
 
     st.sidebar.page_link(
