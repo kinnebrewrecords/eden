@@ -87,6 +87,11 @@ def run_eden(command, answers=None):
     terminal_output = StringIO()
     eden = get_eden_engine()
 
+    # The sidebar can switch projects after the chat engine was created.
+    # Refresh the manager from disk so every finished estimate uses the
+    # project currently selected in the shared sidebar.
+    eden.projects.load()
+
     try:
         with redirect_stdout(terminal_output):
             with patch("builtins.input", browser_input):
