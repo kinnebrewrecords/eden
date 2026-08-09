@@ -84,14 +84,38 @@ def render_sidebar(
         ]
 
         if project_names:
-            selected_project = st.sidebar.selectbox(
-                "Open project",
-                project_names
+            active_project = projects.get_active_project()
+            active_project_name = (
+                active_project["name"]
+                if active_project is not None
+                else None
             )
 
-            if st.sidebar.button("Open Selected Project"):
-                projects.select_project(selected_project)
-                st.rerun()
+            project_switcher_key = "eden_project_switcher"
+
+            if st.session_state.get(project_switcher_key) not in project_names:
+                st.session_state[project_switcher_key] = (
+                    active_project_name
+                    if active_project_name in project_names
+                    else project_names[0]
+                )
+
+            def switch_active_project():
+                projects.select_project(
+                    st.session_state[project_switcher_key]
+                )
+
+            selected_project = st.sidebar.selectbox(
+                "Active project",
+                project_names,
+                key=project_switcher_key,
+                help=(
+                    "Choose a project to make it active everywhere in Eden."
+                ),
+                on_change=switch_active_project
+            )
+
+            st.sidebar.caption(f"Working in: {selected_project}")
 
             with st.sidebar.expander("Delete a Project"):
                 st.warning(
