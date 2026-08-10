@@ -33,11 +33,12 @@ if user:
 
         if refreshed_user:
             st.switch_page("Frontend.py")
-
-        st.warning(
-            "Your saved sign-in session expired. Please sign in again."
-        )
-        st.rerun()
+            st.stop()
+        else:
+            st.warning(
+                "Your saved sign-in session expired. Please sign in again."
+            )
+            st.rerun()
 
     st.stop()
 
