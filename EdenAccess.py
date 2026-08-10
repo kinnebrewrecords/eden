@@ -3,7 +3,7 @@
 import json
 from datetime import datetime, timezone
 
-from EdenAuth import get_authenticated_workspace_store
+from EdenAuth import refresh_authenticated_workspace_store
 
 
 def _access_from_response(data):
@@ -61,24 +61,36 @@ def _direct_entitlement_access(store, user_id):
 
 def current_access():
     """Return the current user's verified Eden entitlement."""
-    store, session = get_authenticated_workspace_store()
+    # Protected pages must use a freshly authenticated client. Reusing the
+    # cached client after page navigation can lose its request JWT and make
+    # an active beta entitlement look unavailable.
+    store, session = refresh_authenticated_workspace_store()
 
     if store is None or session is None:
         return {"has_access": False}
 
     rpc_error = None
+    access = None
 
     try:
         response = store.client.rpc("get_eden_access").execute()
         access = _access_from_response(getattr(response, "data", None))
 
-        if access is not None:
+        if access is not None and access.get("has_access"):
             return access
     except Exception as error:
         rpc_error = str(error)
 
     try:
-        return _direct_entitlement_access(store, session["user_id"])
+        direct_access = _direct_entitlement_access(
+            store,
+            session["user_id"]
+        )
+
+        if direct_access.get("has_access") or access is None:
+            return direct_access
+
+        return access
     except Exception as error:
         return {
             "has_access": False,
