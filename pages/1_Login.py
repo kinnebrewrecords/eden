@@ -2,7 +2,7 @@ import streamlit as st
 
 from EdenAuth import (
     current_user,
-    get_authenticated_workspace_store,
+    refresh_authenticated_workspace_store,
     sign_in,
     sign_out
 )
@@ -29,7 +29,7 @@ if user:
         # Refresh the saved Supabase session before the protected page checks
         # beta/subscription access. This prevents a stale browser token from
         # being mistaken for an account with no Eden access.
-        _, refreshed_user = get_authenticated_workspace_store()
+        _, refreshed_user = refresh_authenticated_workspace_store()
 
         if refreshed_user:
             st.switch_page("Frontend.py")

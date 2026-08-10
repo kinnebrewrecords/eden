@@ -244,3 +244,10 @@ def get_authenticated_workspace_store():
     )
 
     return store, updated_session
+
+
+def refresh_authenticated_workspace_store():
+    """Force a fresh Supabase token refresh for the current browser session."""
+    st.session_state.pop(WORKSPACE_STORE_KEY, None)
+    st.session_state.pop(WORKSPACE_STORE_USER_KEY, None)
+    return get_authenticated_workspace_store()
