@@ -16,7 +16,10 @@ def require_eden_login():
             "eden_access_verified_user_id"
         )
 
-        if verified_user_id == user["user_id"]:
+        if (
+                verified_user_id == user["user_id"]
+                or user.get("access_verified_user_id") == user["user_id"]
+        ):
             access = {"has_access": True}
         else:
             access = current_access()

@@ -1,6 +1,7 @@
 """Minimal Supabase email/password authentication for Eden beta."""
 
 import json
+from datetime import datetime, timezone
 
 import streamlit as st
 
@@ -80,9 +81,17 @@ def _clear_session_cookie():
     st.session_state[COOKIE_LAST_VALUE_KEY] = None
 
 
-def _store_session(session):
+def _store_session(session, verified_access=None):
     if not session or not session.user:
         return None
+
+    previous_session = st.session_state.get(SESSION_KEY, {})
+
+    if verified_access is None:
+        verified_access = (
+            previous_session.get("access_verified_user_id")
+            == session.user.id
+        )
 
     data = {
         "user_id": session.user.id,
@@ -90,6 +99,10 @@ def _store_session(session):
         "access_token": session.access_token,
         "refresh_token": session.refresh_token
     }
+
+    if verified_access:
+        data["access_verified_user_id"] = session.user.id
+
     st.session_state.pop(SIGNED_OUT_KEY, None)
     st.session_state[SESSION_KEY] = data
     _save_session_cookie(data)
@@ -148,7 +161,54 @@ def sign_up(email, password):
         }
     )
 
-    return _store_session(response.session), response
+    return _store_session(response.session, False), response
+
+
+def _has_eden_access(store, user_id):
+    """Check entitlement while the client holds a newly signed-in session."""
+    try:
+        response = store.client.rpc("get_eden_access").execute()
+        data = getattr(response, "data", None)
+
+        if isinstance(data, dict):
+            return bool(data.get("has_access"))
+
+        if isinstance(data, list) and data and isinstance(data[0], dict):
+            return bool(data[0].get("has_access"))
+
+        if isinstance(data, str):
+            parsed = json.loads(data)
+            if isinstance(parsed, dict):
+                return bool(parsed.get("has_access"))
+    except Exception:
+        pass
+
+    try:
+        response = (
+            store.client.table("eden_access_entitlements")
+            .select("access_expires_at")
+            .eq("user_id", user_id)
+            .eq("status", "active")
+            .limit(1)
+            .execute()
+        )
+        rows = getattr(response, "data", None) or []
+
+        if not rows:
+            return False
+
+        expires_at = rows[0].get("access_expires_at")
+        if not expires_at:
+            return True
+
+        expires = datetime.fromisoformat(
+            str(expires_at).replace("Z", "+00:00")
+        )
+        return expires > datetime.now(timezone.utc)
+    except Exception:
+        pass
+
+    return False
 
 
 def sign_in(email, password):
@@ -160,7 +220,10 @@ def sign_in(email, password):
         }
     )
 
-    return _store_session(response.session)
+    return _store_session(
+        response.session,
+        _has_eden_access(store, response.session.user.id)
+    )
 
 
 def sign_out():
@@ -226,10 +289,9 @@ def get_authenticated_workspace_store():
             session["refresh_token"]
         )
     except Exception:
-        # An old refresh token cannot be used again. Clear only Eden's local
-        # browser session and let the user sign in again.
-        st.session_state.pop(SESSION_KEY, None)
-        _clear_session_cookie()
+        # Cloud syncing must never sign the user out. A token can briefly be
+        # stale after a browser reload because Supabase rotates refresh tokens.
+        # Keep the authenticated Eden session and try cloud sync again later.
         return None, None
 
     updated_session = _store_session(refreshed_session)
