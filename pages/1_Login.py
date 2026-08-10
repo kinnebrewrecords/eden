@@ -15,6 +15,10 @@ apply_eden_theme()
 st.title("Sign in to Eden")
 st.caption("Use the Eden account that has your subscription or beta access.")
 
+login_notice = st.session_state.pop("eden_login_notice", None)
+if login_notice:
+    st.info(login_notice)
+
 user = current_user()
 
 if user:
@@ -35,8 +39,10 @@ if user:
             st.switch_page("Frontend.py")
             st.stop()
         else:
-            st.warning(
-                "Your saved sign-in session expired. Please sign in again."
+            sign_out()
+            st.session_state["eden_login_notice"] = (
+                "Your saved Eden session expired. Sign in again below with "
+                "the same Eden account to continue to your Dashboard."
             )
             st.rerun()
 
