@@ -12,7 +12,14 @@ def require_eden_login():
     user = current_user()
 
     if user:
-        access = current_access()
+        verified_user_id = st.session_state.get(
+            "eden_access_verified_user_id"
+        )
+
+        if verified_user_id == user["user_id"]:
+            access = {"has_access": True}
+        else:
+            access = current_access()
 
         if not access.get("has_access"):
             st.markdown(
@@ -84,4 +91,6 @@ def require_eden_login():
         "starting your trial or subscription."
     )
 
-    st.stop()
+            st.stop()
+
+        st.session_state["eden_access_verified_user_id"] = user["user_id"]

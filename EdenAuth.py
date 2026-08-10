@@ -177,6 +177,7 @@ def sign_out():
             WORKSPACE_STORE_KEY,
             WORKSPACE_STORE_USER_KEY,
             "eden_workspace_loaded_for_user",
+            "eden_access_verified_user_id",
             "eden_cloud_workspace_hash",
             "eden_project_workspace_path",
             "eden_active_project_name",

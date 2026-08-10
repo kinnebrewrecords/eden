@@ -3,7 +3,7 @@
 import json
 from datetime import datetime, timezone
 
-from EdenAuth import refresh_authenticated_workspace_store
+from EdenAuth import get_authenticated_workspace_store
 
 
 def _access_from_response(data):
@@ -61,10 +61,7 @@ def _direct_entitlement_access(store, user_id):
 
 def current_access():
     """Return the current user's verified Eden entitlement."""
-    # Protected pages must use a freshly authenticated client. Reusing the
-    # cached client after page navigation can lose its request JWT and make
-    # an active beta entitlement look unavailable.
-    store, session = refresh_authenticated_workspace_store()
+    store, session = get_authenticated_workspace_store()
 
     if store is None or session is None:
         return {"has_access": False}

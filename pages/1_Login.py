@@ -2,7 +2,6 @@ import streamlit as st
 
 from EdenAuth import (
     current_user,
-    refresh_authenticated_workspace_store,
     sign_in,
     sign_out
 )
@@ -30,21 +29,7 @@ if user:
         st.rerun()
 
     if st.button("Continue to My Eden Workspace"):
-        # Refresh the saved Supabase session before the protected page checks
-        # beta/subscription access. This prevents a stale browser token from
-        # being mistaken for an account with no Eden access.
-        _, refreshed_user = refresh_authenticated_workspace_store()
-
-        if refreshed_user:
-            st.switch_page("Frontend.py")
-            st.stop()
-        else:
-            sign_out()
-            st.session_state["eden_login_notice"] = (
-                "Your saved Eden session expired. Sign in again below with "
-                "the same Eden account to continue to your Dashboard."
-            )
-            st.rerun()
+        st.switch_page("Frontend.py")
 
     st.stop()
 
