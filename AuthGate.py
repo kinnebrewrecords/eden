@@ -48,6 +48,8 @@ def require_eden_login():
             )
             st.stop()
 
+        st.session_state["eden_access_verified_user_id"] = user["user_id"]
+
         try:
             activate_workspace_for_current_user()
         except Exception:
@@ -90,7 +92,3 @@ def require_eden_login():
         "New to Eden? Create your account through the Eden website after "
         "starting your trial or subscription."
     )
-
-            st.stop()
-
-        st.session_state["eden_access_verified_user_id"] = user["user_id"]
