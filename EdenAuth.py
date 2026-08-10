@@ -237,6 +237,8 @@ def sign_in(email, password):
         }
     )
 
+    store.set_access_token(response.session.access_token)
+
     return _store_session(
         response.session,
         _has_eden_access(store, response.session.user.id)
@@ -276,10 +278,7 @@ def sign_out():
     if session:
         try:
             store = create_workspace_store()
-            store.set_session(
-                session["access_token"],
-                session["refresh_token"]
-            )
+            store.set_access_token(session["access_token"])
             store.client.auth.sign_out()
         except Exception:
             # Local sign-out still succeeds if the network request fails.
@@ -301,33 +300,24 @@ def get_authenticated_workspace_store():
     store = create_workspace_store()
 
     try:
-        refreshed_session = store.set_session(
-            session["access_token"],
-            session["refresh_token"]
-        )
+        # Do not call Supabase auth.set_session here. It refreshes and rotates
+        # a token on every Streamlit page load, which can invalidate the
+        # cookie during navigation. The current access token is enough for
+        # Eden's RLS-protected workspace and access queries.
+        store.set_access_token(session["access_token"])
     except Exception:
-        # Cloud syncing must never sign the user out. A token can briefly be
-        # stale after a browser reload because Supabase rotates refresh tokens.
-        # Keep the authenticated Eden session and try cloud sync again later.
-        return None, None
-
-    updated_session = _store_session(refreshed_session)
-
-    if not updated_session:
-        st.session_state.pop(SESSION_KEY, None)
-        _clear_session_cookie()
         return None, None
 
     st.session_state[WORKSPACE_STORE_KEY] = store
     st.session_state[WORKSPACE_STORE_USER_KEY] = (
-        updated_session["user_id"]
+        session["user_id"]
     )
 
-    return store, updated_session
+    return store, session
 
 
 def refresh_authenticated_workspace_store():
-    """Force a fresh Supabase token refresh for the current browser session."""
+    """Rebuild the authorized workspace client for the current session."""
     st.session_state.pop(WORKSPACE_STORE_KEY, None)
     st.session_state.pop(WORKSPACE_STORE_USER_KEY, None)
     return get_authenticated_workspace_store()

@@ -32,6 +32,10 @@ class SupabaseWorkspaceStore:
 
         return getattr(response, "session", response)
 
+    def set_access_token(self, access_token):
+        """Authorize database requests without rotating a refresh token."""
+        self.client.postgrest.auth(access_token)
+
     def load_workspace(self, user_id):
         response = (
             self.client.table(self.TABLE_NAME)
