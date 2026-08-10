@@ -4,7 +4,11 @@ import streamlit as st
 
 from CloudWorkspace import activate_workspace_for_current_user
 from EdenAccess import current_access
-from EdenAuth import current_user, sign_in
+from EdenAuth import (
+    current_user,
+    mark_current_session_access_verified,
+    sign_in
+)
 
 
 def require_eden_login():
@@ -52,6 +56,7 @@ def require_eden_login():
             st.stop()
 
         st.session_state["eden_access_verified_user_id"] = user["user_id"]
+        mark_current_session_access_verified()
 
         try:
             activate_workspace_for_current_user()

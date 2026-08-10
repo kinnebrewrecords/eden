@@ -152,6 +152,23 @@ def current_user():
     return session
 
 
+def mark_current_session_access_verified():
+    """Persist a successful Eden-access check in the existing login cookie."""
+    session = current_user()
+
+    if not session:
+        return
+
+    user_id = session["user_id"]
+    if session.get("access_verified_user_id") == user_id:
+        return
+
+    verified_session = dict(session)
+    verified_session["access_verified_user_id"] = user_id
+    st.session_state[SESSION_KEY] = verified_session
+    _save_session_cookie(verified_session)
+
+
 def sign_up(email, password):
     store = create_workspace_store()
     response = store.client.auth.sign_up(
