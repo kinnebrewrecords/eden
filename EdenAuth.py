@@ -11,7 +11,7 @@ from SupabaseStorage import create_workspace_store
 
 
 SESSION_KEY = "eden_supabase_session"
-COOKIE_KEY = "eden-auth-session"
+COOKIE_KEY = "eden-auth-session-v2"
 COOKIE_MANAGER_KEY = "eden_cookie_manager"
 COOKIE_LAST_VALUE_KEY = "eden_cookie_last_value"
 SIGNED_OUT_KEY = "eden_signed_out"
@@ -37,7 +37,7 @@ def _get_cookie_manager():
         return None
 
     cookies = EncryptedCookieManager(
-        prefix="eden/",
+        prefix="eden-v2/",
         password=password
     )
 
