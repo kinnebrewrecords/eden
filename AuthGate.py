@@ -48,6 +48,9 @@ def require_eden_login():
                     "Eden could not verify account access. Make sure the "
                     "beta access SQL setup has been run in Supabase."
                 )
+                st.caption(
+                    f"Access-check detail: {access['error']}"
+                )
 
             st.caption(
                 "Open the Eden website Account & Billing page to redeem "
