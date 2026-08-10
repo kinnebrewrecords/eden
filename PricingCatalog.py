@@ -3,7 +3,6 @@ from datetime import date
 from pathlib import Path
 
 from WorkspaceFiles import workspace_file
-from EdenRegionalPricing import get_eden_average
 
 
 class PricingCatalog:
@@ -413,20 +412,6 @@ class PricingCatalog:
             "sample_count": len(matches)
         }
 
-    def get_eden_regional_average_price_details(
-            self,
-            item,
-            unit,
-            region_name=None
-    ):
-        """Return Eden's vetted regional estimate when one is available."""
-        region = self._get_region(region_name)
-
-        if region is None:
-            return None
-
-        return get_eden_average(item, unit, region["name"])
-
     def get_all_material_prices(self, region_name=None):
         region = self._get_region(region_name)
 
@@ -524,23 +509,6 @@ class PricingCatalog:
 
                     if price_details is not None:
                         price_source = "Estimated regional average"
-
-                if price_details is None:
-                    price_details = (
-                        self.get_eden_regional_average_price_details(
-                            name,
-                            unit,
-                            region_name
-                        )
-                    )
-                    unit_cost = (
-                        price_details["unit_cost"]
-                        if price_details is not None
-                        else None
-                    )
-
-                    if price_details is not None:
-                        price_source = "Eden regional average - estimate"
 
             priced_item = {
                 "item": name,

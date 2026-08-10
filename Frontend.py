@@ -162,12 +162,8 @@ if not profile.get("name") or not profile.get("company"):
             placeholder="Example: ABC Ready Mix or Home Depot"
         )
         price_setup_choice = st.radio(
-            "How would you like to start pricing materials?",
-            [
-                "Use Eden regional averages",
-                "Add my supplier prices now",
-                "Add prices later"
-            ],
+            "Would you like to enter supplier prices now?",
+            ["Later", "Now"],
             horizontal=True
         )
 
@@ -181,14 +177,13 @@ if not profile.get("name") or not profile.get("company"):
                 name,
                 company,
                 default_region=default_region,
-                preferred_supplier=preferred_supplier,
-                pricing_setup_choice=price_setup_choice
+                preferred_supplier=preferred_supplier
             )
 
             if preferred_supplier.strip():
                 pricing.add_supplier(preferred_supplier)
 
-            if price_setup_choice == "Add my supplier prices now":
+            if price_setup_choice == "Now":
                 st.session_state["eden_open_pricing_setup"] = True
                 st.switch_page("pages/3_Settings.py")
 
@@ -937,8 +932,9 @@ if material_takeoff:
 
         st.subheader("Project Material Cost Preview")
         st.caption(
-            "Eden uses your saved supplier price first, then your saved "
-            "regional average, then a current Eden regional estimate."
+            "Eden uses a saved supplier price first. When one is not "
+            "available, it uses the average of saved prices for that "
+            "material in the selected region and labels it as an estimate."
         )
         if material_supplier_overrides:
             st.caption(
