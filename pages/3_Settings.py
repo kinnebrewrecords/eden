@@ -553,7 +553,9 @@ with pricing_tab:
             "price below, or return later from Settings."
         )
     st.caption(
-        "Store supplier-specific material costs by market or delivery zone."
+        "Store supplier-specific material costs by market or delivery zone. "
+        "Eden uses these saved prices to calculate a clearly labeled "
+        "regional estimate when an exact supplier price is unavailable."
     )
 
     with st.expander("Supplier Directory", expanded=True):

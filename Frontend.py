@@ -931,6 +931,11 @@ if material_takeoff:
         )
 
         st.subheader("Project Material Cost Preview")
+        st.caption(
+            "Eden uses a saved supplier price first. When one is not "
+            "available, it uses the average of saved prices for that "
+            "material in the selected region and labels it as an estimate."
+        )
         if material_supplier_overrides:
             st.caption(
                 "Using material-specific supplier selections where saved, "
@@ -988,7 +993,8 @@ if material_takeoff:
                         "price_date",
                         "Not recorded"
                     ),
-                    "Status": item["status"]
+                "Price Source": item.get("price_source", item["status"]),
+                "Status": item["status"]
                 }
             )
 
@@ -1053,7 +1059,8 @@ if material_takeoff:
 
         if priced_takeoff["unpriced_items"]:
             st.warning(
-                "This total excludes items without a saved supplier price."
+                "This total excludes materials that have neither a saved "
+                "supplier price nor an Eden regional average."
             )
 
             with st.expander(

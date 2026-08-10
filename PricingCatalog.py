@@ -375,6 +375,43 @@ class PricingCatalog:
 
         return material["unit_cost"]
 
+    def get_regional_average_price_details(
+            self,
+            item,
+            unit,
+            region_name=None
+    ):
+        """Return an estimated average from saved supplier prices in a region."""
+        region = self._get_region(region_name)
+
+        if region is None:
+            return None
+
+        material_key = self._make_material_key(item, unit)
+        matches = [
+            price
+            for key, price in region["material_prices"].items()
+            if key.startswith(f"{material_key}|")
+        ]
+
+        if not matches:
+            return None
+
+        unit_cost = round(
+            sum(float(price["unit_cost"]) for price in matches) /
+            len(matches),
+            2
+        )
+
+        return {
+            "item": item.strip(),
+            "unit": unit.strip().upper(),
+            "unit_cost": unit_cost,
+            "supplier": "Eden regional average",
+            "price_date": "Based on saved supplier prices",
+            "sample_count": len(matches)
+        }
+
     def get_all_material_prices(self, region_name=None):
         region = self._get_region(region_name)
 
@@ -431,9 +468,11 @@ class PricingCatalog:
 
             manual_unit_cost = item.get("manual_unit_cost")
             price_details = None
+            price_source = ""
 
             if manual_unit_cost is not None:
                 unit_cost = float(manual_unit_cost)
+                price_source = "Project custom price"
             else:
                 material_key = self._make_material_key(name, unit)
                 item_supplier = supplier_by_material.get(
@@ -453,6 +492,23 @@ class PricingCatalog:
                     if price_details is not None
                     else None
                 )
+
+                if price_details is not None:
+                    price_source = "Supplier price"
+                else:
+                    price_details = self.get_regional_average_price_details(
+                        name,
+                        unit,
+                        region_name
+                    )
+                    unit_cost = (
+                        price_details["unit_cost"]
+                        if price_details is not None
+                        else None
+                    )
+
+                    if price_details is not None:
+                        price_source = "Estimated regional average"
 
             priced_item = {
                 "item": name,
@@ -476,7 +532,8 @@ class PricingCatalog:
                         if manual_unit_cost is not None
                         else "Not recorded"
                     )
-                )
+                ),
+                "price_source": price_source
             }
 
             if unit_cost is None:
@@ -486,7 +543,7 @@ class PricingCatalog:
             else:
                 extended_cost = round(float(quantity) * unit_cost, 2)
                 priced_item["extended_cost"] = extended_cost
-                priced_item["status"] = "Priced"
+                priced_item["status"] = price_source or "Priced"
                 total_material_cost += extended_cost
 
             priced_items.append(priced_item)
