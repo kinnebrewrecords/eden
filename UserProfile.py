@@ -29,7 +29,8 @@ def save_profile(
         email="",
         address="",
         default_region="",
-        preferred_supplier=""
+        preferred_supplier="",
+        pricing_setup_choice=""
 ):
     profile_file = _profile_file()
     existing_profile = load_profile()
@@ -42,6 +43,10 @@ def save_profile(
         "address": address.strip(),
         "default_region": default_region.strip(),
         "preferred_supplier": preferred_supplier.strip(),
+        "pricing_setup_choice": (
+            pricing_setup_choice.strip()
+            or existing_profile.get("pricing_setup_choice", "")
+        ),
         "avatar_path": existing_profile.get(
             "avatar_path",
             ""
