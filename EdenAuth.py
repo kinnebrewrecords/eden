@@ -1,6 +1,8 @@
 """Minimal Supabase email/password authentication for Eden beta."""
 
+import base64
 import json
+import time
 from datetime import datetime, timezone
 
 import streamlit as st
@@ -107,6 +109,20 @@ def _store_session(session, verified_access=None):
     st.session_state[SESSION_KEY] = data
     _save_session_cookie(data)
     return data
+
+
+def _access_token_needs_refresh(access_token, buffer_seconds=60):
+    """Return True only when the signed-in access token is nearly expired."""
+    try:
+        encoded_payload = access_token.split(".")[1]
+        encoded_payload += "=" * (-len(encoded_payload) % 4)
+        payload = json.loads(
+            base64.urlsafe_b64decode(encoded_payload).decode("utf-8")
+        )
+        return float(payload["exp"]) <= time.time() + buffer_seconds
+    except Exception:
+        # If Eden cannot inspect a token, use Supabase's refresh path once.
+        return True
 
 
 def current_user():
@@ -298,22 +314,32 @@ def get_authenticated_workspace_store():
         return cached_store, session
 
     store = create_workspace_store()
+    active_session = session
 
     try:
-        # Do not call Supabase auth.set_session here. It refreshes and rotates
-        # a token on every Streamlit page load, which can invalidate the
-        # cookie during navigation. The current access token is enough for
-        # Eden's RLS-protected workspace and access queries.
-        store.set_access_token(session["access_token"])
+        # Refresh only an expired/near-expired access token. Refreshing on
+        # every Streamlit page load rotates the refresh token and causes the
+        # Dashboard access loop the beta encountered.
+        if _access_token_needs_refresh(session["access_token"]):
+            refreshed_session = store.set_session(
+                session["access_token"],
+                session["refresh_token"]
+            )
+            active_session = _store_session(refreshed_session)
+
+            if not active_session:
+                return None, None
+
+        store.set_access_token(active_session["access_token"])
     except Exception:
         return None, None
 
     st.session_state[WORKSPACE_STORE_KEY] = store
     st.session_state[WORKSPACE_STORE_USER_KEY] = (
-        session["user_id"]
+        active_session["user_id"]
     )
 
-    return store, session
+    return store, active_session
 
 
 def refresh_authenticated_workspace_store():
