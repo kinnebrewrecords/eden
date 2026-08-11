@@ -222,6 +222,7 @@ with profile_tab:
                     default_region,
                     preferred_supplier
                 )
+                pricing.set_default_region(default_region)
 
                 if preferred_supplier.strip():
                     pricing.add_supplier(preferred_supplier)

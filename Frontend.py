@@ -188,6 +188,7 @@ if not profile.get("name") or not profile.get("company"):
                 default_region=default_region,
                 preferred_supplier=preferred_supplier
             )
+            pricing.set_default_region(default_region)
 
             if preferred_supplier.strip():
                 pricing.add_supplier(preferred_supplier)
@@ -947,6 +948,13 @@ if material_takeoff:
                 "This total excludes items without a saved price. Add unit "
                 "prices below, or save them later in Settings > Regional Pricing."
             )
+            if not pricing.get_all_material_prices(
+                    project_pricing_region
+            ):
+                st.info(
+                    "You chose to add prices later. Saving these prices will "
+                    f"start your reusable {project_pricing_region} price list."
+                )
             st.caption(
                 "Eden automatically uses a regional average whenever saved "
                 "supplier prices exist for the same material and unit."
@@ -1024,7 +1032,10 @@ if material_takeoff:
                                 price_date=missing_price_date
                             )
 
-                        st.success("Missing material prices saved.")
+                        st.success(
+                            "Prices saved to your regional price list. Eden "
+                            "will reuse them for future projects in this region."
+                        )
                         st.rerun()
 
         if False:
