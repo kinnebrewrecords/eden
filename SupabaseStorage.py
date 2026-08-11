@@ -12,6 +12,7 @@ from supabase import create_client
 
 class SupabaseWorkspaceStore:
     TABLE_NAME = "eden_workspaces"
+    VERSION_TABLE_NAME = "eden_workspace_versions"
 
     def __init__(self, project_url, publishable_key):
         if not project_url or not publishable_key:
@@ -67,6 +68,47 @@ class SupabaseWorkspaceStore:
         )
 
         return response.data
+
+    def save_workspace_version(self, user_id, state, reason):
+        """Store a recoverable workspace snapshot when versioning is enabled."""
+        response = (
+            self.client.table(self.VERSION_TABLE_NAME)
+            .insert(
+                {
+                    "user_id": user_id,
+                    "state": state,
+                    "reason": reason
+                }
+            )
+            .execute()
+        )
+
+        return response.data
+
+    def list_workspace_versions(self, user_id, limit=20):
+        response = (
+            self.client.table(self.VERSION_TABLE_NAME)
+            .select("id, created_at, reason")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+
+        return getattr(response, "data", None) or []
+
+    def load_workspace_version(self, user_id, version_id):
+        response = (
+            self.client.table(self.VERSION_TABLE_NAME)
+            .select("state")
+            .eq("user_id", user_id)
+            .eq("id", version_id)
+            .limit(1)
+            .execute()
+        )
+        rows = getattr(response, "data", None) or []
+
+        return rows[0].get("state") if rows else None
 
 
 def create_workspace_store():

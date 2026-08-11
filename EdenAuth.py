@@ -277,6 +277,7 @@ def sign_out():
             "eden_workspace_loaded_for_user",
             "eden_access_verified_user_id",
             "eden_cloud_workspace_hash",
+            "eden_workspace_conflict",
             "eden_project_workspace_path",
             "eden_active_project_name",
             "eden_project_switcher",

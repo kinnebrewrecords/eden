@@ -41,6 +41,17 @@ def render_sidebar(
         st.sidebar.caption("Cloud: synced")
     elif cloud_status == "current":
         st.sidebar.caption("Cloud: up to date")
+    elif cloud_status == "waiting_for_setup":
+        st.sidebar.caption("Cloud: starts after company setup")
+    elif cloud_status == "cloud_changed":
+        st.sidebar.warning(
+            "Cloud changed elsewhere. Open Account & Cloud before making "
+            "new changes on this device."
+        )
+    elif cloud_status == "not_loaded":
+        st.sidebar.warning(
+            "Cloud workspace has not loaded yet. Your data is not syncing."
+        )
     elif cloud_status == "unavailable":
         st.sidebar.caption("Cloud: reconnect in Account & Cloud")
 

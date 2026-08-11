@@ -2,7 +2,8 @@ import streamlit as st
 
 from CloudWorkspace import (
     backup_local_workspace,
-    restore_local_workspace
+    restore_local_workspace,
+    restore_workspace_version
 )
 from EdenAuth import (
     current_user,
@@ -102,10 +103,34 @@ backup_column, restore_column = st.columns(2)
 with backup_column:
     st.subheader("Back up this device")
     st.write(
-        "Upload this device's projects, pricing, settings, bids, schedule, and daily logs to your private cloud workspace."
+        "Upload this device's projects, pricing, settings, bids, schedule, and daily-log entries to your private cloud workspace."
+    )
+    st.caption(
+        "Daily-log photo files remain on the device for now; Eden will show "
+        "a dedicated photo-cloud backup option before treating them as cloud "
+        "protected."
     )
 
-    if st.button("Back Up Eden to Cloud", type="primary"):
+    cloud_conflict = bool(
+        st.session_state.get("eden_workspace_conflict")
+    )
+    confirm_cloud_replace = True
+
+    if cloud_conflict:
+        st.warning(
+            "The cloud copy changed or you restored an older snapshot. "
+            "Backing up now will make this device's data the current cloud copy."
+        )
+        confirm_cloud_replace = st.checkbox(
+            "I understand this will replace the current cloud workspace.",
+            key="eden_confirm_cloud_replace"
+        )
+
+    if st.button(
+            "Back Up Eden to Cloud",
+            type="primary",
+            disabled=not confirm_cloud_replace
+    ):
         try:
             workspace = backup_local_workspace(
                 store,
@@ -114,7 +139,6 @@ with backup_column:
             st.success(
                 f"Cloud backup complete: {len(workspace['files'])} data files saved."
             )
-            st.session_state.pop("eden_cloud_workspace_hash", None)
         except Exception as error:
             st.error(f"Cloud backup failed: {error}")
 
@@ -145,6 +169,67 @@ with restore_column:
                 st.info(result)
         except Exception as error:
             st.error(f"Cloud restore failed: {error}")
+
+with st.expander("Recovery snapshots"):
+    st.caption(
+        "Eden keeps recent cloud snapshots before saving changed workspace "
+        "data. Restore one only when you need to recover a previous state."
+    )
+
+    try:
+        recovery_versions = store.list_workspace_versions(
+            session["user_id"]
+        )
+    except Exception:
+        recovery_versions = []
+
+    if recovery_versions:
+        version_labels = {
+            (
+                f"{version.get('created_at', 'Unknown time')} — "
+                f"{version.get('reason', 'workspace snapshot')}"
+            ): version["id"]
+            for version in recovery_versions
+        }
+        selected_version_label = st.selectbox(
+            "Choose a recovery snapshot",
+            list(version_labels),
+            key="eden_recovery_snapshot"
+        )
+        confirm_version_restore = st.checkbox(
+            "I understand this replaces my current local Eden data.",
+            key="eden_confirm_recovery_snapshot"
+        )
+
+        if st.button(
+                "Restore Selected Snapshot",
+                disabled=not confirm_version_restore
+        ):
+            try:
+                restored, result = restore_workspace_version(
+                    store,
+                    session["user_id"],
+                    version_labels[selected_version_label]
+                )
+
+                if restored:
+                    st.success(
+                        "Recovery snapshot restored: " + ", ".join(result)
+                    )
+                    st.info(
+                        "This snapshot is restored on this device only. "
+                        "Use Back Up Eden to Cloud if you want it to become "
+                        "the current cloud workspace."
+                    )
+                else:
+                    st.info(result)
+            except Exception as error:
+                st.error(f"Recovery snapshot failed: {error}")
+    else:
+        st.info(
+            "No recovery snapshots yet. Run the cloud-storage SQL update "
+            "once, then Eden will begin preserving them."
+        )
 
 st.divider()
 
