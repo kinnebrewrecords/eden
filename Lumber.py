@@ -502,7 +502,9 @@ class LumberEstimator:
             wall_length,
             stud_spacing_inches=None,
             rows=1,
-            waste_percent = None
+            waste_percent=None,
+            material_size="2x4",
+            block_length_inches=None
     ):
 
         waste_percent = self._get_lumber_waste_percent(
@@ -516,6 +518,10 @@ class LumberEstimator:
         )
 
         spacing_feet = stud_spacing_inches / 12
+        if block_length_inches is None:
+            # Nominal 1.5-in member thickness is appropriate for typical
+            # dimensional-lumber blocking at the entered spacing.
+            block_length_inches = stud_spacing_inches - 1.5
 
         # Number of spaces between studs
         spaces = math.ceil(
@@ -530,7 +536,10 @@ class LumberEstimator:
 
         material_takeoff = [
             {
-                "item": "2x4 x 14.5 in Blocking",
+                "item": (
+                    f"{material_size} x "
+                    f"{round(block_length_inches, 1)} in Blocking"
+                ),
                 "unit": "EA",
                 "quantity": blocks_to_order
             }
@@ -545,8 +554,8 @@ class LumberEstimator:
             "rows": rows,
 
             "blocking": {
-                "size": "2x4",
-                "length": "14.5 inches",
+                "size": material_size,
+                "length": f"{round(block_length_inches, 1)} inches",
                 "quantity": blocks_to_order
             },
 
@@ -606,6 +615,27 @@ class LumberEstimator:
             },
 
             "material_takeoff": material_takeoff,
+            "waste_percent": waste_percent
+        }
+
+    def wall_sheathing_area(self, area_sqft, waste_percent=None):
+        """Estimate wall sheathing from net measured wall area."""
+        waste_percent = self._get_lumber_waste_percent(waste_percent)
+        sheets_to_order = math.ceil(
+            area_sqft * (1 + waste_percent / 100) /
+            Settings.SHEATHING_SHEET_COVERAGE_SQFT
+        )
+
+        return {
+            "type": "Wall Sheathing",
+            "area": round(area_sqft, 2),
+            "material_takeoff": [
+                {
+                    "item": "4x8 7/16 OSB Wall Sheathing",
+                    "unit": "SHEETS",
+                    "quantity": sheets_to_order
+                }
+            ],
             "waste_percent": waste_percent
         }
 

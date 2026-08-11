@@ -1,7 +1,15 @@
 
 from Estimating import Estimator
 from ParameterExtractor import ParameterExtractor
-from AssemblyReports import create_backyard_studio_shell_report
+from AssemblyReports import (
+    create_backyard_studio_shell_report,
+    create_exterior_wall_assembly_report,
+    create_foundation_system_assembly_report,
+    create_roof_covering_assembly_report,
+    create_floor_system_assembly_report,
+    create_interior_finish_assembly_report,
+    create_residential_house_takeoff_report
+)
 from SpecialtyReports import create_specialty_report
 from EstimatingPreferences import EstimatingPreferences
 
@@ -60,6 +68,20 @@ class CommandHandler:
             except ValueError:
                 print("Please enter a whole number.")
 
+    def ask_nonnegative_float(self, prompt):
+        while True:
+            try:
+                value = float(self.ask_input(prompt))
+
+                if value < 0:
+                    print("Please enter zero or a positive number.")
+                    continue
+
+                return value
+
+            except ValueError:
+                print("Please enter a valid number.")
+
     def ask_positive_int(self, prompt):
         while True:
             try:
@@ -82,6 +104,19 @@ class CommandHandler:
                 return value
 
             print("Please enter a value.")
+
+    def ask_yes_no(self, prompt):
+        """Require an explicit yes/no answer for scope-changing choices."""
+        while True:
+            answer = self.ask_input(prompt).strip().lower()
+
+            if answer in ["yes", "y"]:
+                return True
+
+            if answer in ["no", "n"]:
+                return False
+
+            print("Please answer yes or no.")
 
     def choose_concrete_package(self, package_menu):
 
@@ -359,7 +394,724 @@ class CommandHandler:
         self.projects.add_estimate(estimate)
         return f'Saved to project: {project["name"]}\n{report}'
 
+    def residential_whole_house_takeoff(self):
+        """Guide a contractor through measured residential assemblies.
+
+        The workflow intentionally asks for components one at a time. That
+        makes omissions visible and preserves the same plan-required
+        safeguards used by Eden's standalone assemblies.
+        """
+        print(
+            "\nResidential Whole-House Takeoff combines only the measured "
+            "systems you enter. Use approved plans for all structural sizes, "
+            "spans, reinforcement, and opening details."
+        )
+        house_name = self.ask_required_text("Project or plan name: ")
+        story_count = self.ask_positive_int(
+            "Number of stories included in this takeoff (1 or 2): "
+        )
+
+        while story_count not in [1, 2]:
+            print("This guided workflow currently supports one- or two-story homes.")
+            story_count = self.ask_positive_int(
+                "Number of stories included in this takeoff (1 or 2): "
+            )
+
+        components = {}
+
+        if self.ask_yes_no("Include a foundation system? (yes/no): "):
+            run_count = self.ask_positive_int(
+                "Number of different continuous footing run types: "
+            )
+            footing_runs = []
+
+            for number in range(1, run_count + 1):
+                print(f"\nFoundation footing run type {number}")
+                footing_runs.append(
+                    {
+                        "length": self.ask_positive_float(
+                            "Continuous run length (ft): "
+                        ),
+                        "width_inches": self.ask_positive_float(
+                            "Footing width from plan (in): "
+                        ),
+                        "depth_inches": self.ask_positive_float(
+                            "Footing depth from plan (in): "
+                        ),
+                        "quantity": self.ask_positive_int(
+                            "Number of identical runs: "
+                        )
+                    }
+                )
+
+            include_foundation_wall = self.ask_yes_no(
+                "Include a poured foundation wall? (yes/no): "
+            )
+            wall_length = wall_height = None
+            wall_thickness = 8
+            waterproofing = False
+
+            if include_foundation_wall:
+                wall_length = self.ask_positive_float(
+                    "Total foundation-wall length (ft): "
+                )
+                wall_height = self.ask_positive_float(
+                    "Foundation-wall height (ft): "
+                )
+                wall_thickness = self.ask_positive_float(
+                    "Foundation-wall thickness from plan (in): "
+                )
+                waterproofing = self.ask_yes_no(
+                    "Include foundation waterproofing? (yes/no): "
+                )
+
+            components["Foundation system"] = (
+                self.estimator.foundation_system_assembly(
+                    footing_runs=footing_runs,
+                    reinforced=self.ask_yes_no(
+                        "Is the footing system reinforced? (yes/no): "
+                    ),
+                    forms=self.ask_yes_no(
+                        "Include footing forms? (yes/no): "
+                    ),
+                    gravel_base=self.ask_yes_no(
+                        "Include gravel base below footings? (yes/no): "
+                    ),
+                    include_foundation_wall=include_foundation_wall,
+                    foundation_wall_length_feet=wall_length,
+                    foundation_wall_height_feet=wall_height,
+                    foundation_wall_thickness_inches=wall_thickness,
+                    include_waterproofing=waterproofing
+                )
+            )
+
+        floor_count = self.ask_nonnegative_int(
+            "Number of floor framing systems to include (0-2): "
+        )
+        while floor_count > 2:
+            print("Enter 0, 1, or 2 floor systems. Estimate additional levels separately.")
+            floor_count = self.ask_nonnegative_int(
+                "Number of floor framing systems to include (0-2): "
+            )
+
+        for number in range(1, floor_count + 1):
+            print(f"\nFloor system {number}")
+            length = self.ask_positive_float("Floor length (ft): ")
+            width = self.ask_positive_float("Floor width (ft): ")
+            joist_size = self.ask_required_text(
+                "Joist size from approved plan (example: 2x10): "
+            )
+            joist_length = self.ask_positive_float(
+                "Joist member length from approved plan (ft): "
+            )
+            joist_spacing = self.ask_positive_float(
+                "Joist spacing from approved plan (inches OC): "
+            )
+            rim_size = self.ask_required_text(
+                "Rim joist size from approved plan (example: 2x10): "
+            )
+            rim_stock_length = self.ask_positive_float(
+                "Rim stock length from approved plan (ft): "
+            )
+            include_blocking = self.ask_yes_no(
+                "Include plan-required joist blocking? (yes/no): "
+            )
+            blocking_rows = 1
+            if include_blocking:
+                blocking_rows = self.ask_positive_int(
+                    "Number of blocking rows from plan: "
+                )
+
+            components[f"Floor system {number}"] = (
+                self.estimator.floor_system_assembly(
+                    length_feet=length,
+                    width_feet=width,
+                    joist_spec={
+                        "size": joist_size,
+                        "member_length_feet": joist_length,
+                        "spacing_inches": joist_spacing
+                    },
+                    rim_spec={
+                        "size": rim_size,
+                        "stock_length_feet": rim_stock_length
+                    },
+                    include_blocking=include_blocking,
+                    blocking_rows=blocking_rows
+                )
+            )
+
+        wall_group_count = self.ask_nonnegative_int(
+            "Number of distinct exterior wall groups to include (0 or more): "
+        )
+        for number in range(1, wall_group_count + 1):
+            print(
+                f"\nExterior wall group {number}. Only group identical walls "
+                "together when their opening layout is the same."
+            )
+            length = self.ask_positive_float("Wall length (ft): ")
+            height = self.ask_positive_float("Wall height (ft): ")
+            quantity = self.ask_positive_int("Number of identical walls: ")
+            include_housewrap = self.ask_yes_no("Include housewrap? (yes/no): ")
+            include_insulation = self.ask_yes_no(
+                "Include wall insulation? (yes/no): "
+            )
+            include_drywall = self.ask_yes_no(
+                "Include interior drywall? (yes/no): "
+            )
+            has_openings = self.ask_yes_no(
+                "Do these identical walls have doors or windows? (yes/no): "
+            )
+            openings = []
+            header_spec = None
+            header_plies = None
+
+            if has_openings:
+                opening_count = self.ask_positive_int(
+                    "Number of openings in each identical wall: "
+                )
+                for opening_number in range(1, opening_count + 1):
+                    opening_type = self.ask_required_text(
+                        f"Opening {opening_number} type (door/window): "
+                    ).lower()
+                    while opening_type not in ["door", "window"]:
+                        print("Please enter door or window.")
+                        opening_type = self.ask_required_text(
+                            f"Opening {opening_number} type (door/window): "
+                        ).lower()
+                    openings.append(
+                        {
+                            "type": opening_type,
+                            "width_feet": self.ask_positive_float(
+                                f"Opening {opening_number} width (ft): "
+                            ),
+                            "height_feet": self.ask_positive_float(
+                                f"Opening {opening_number} height (ft): "
+                            )
+                        }
+                    )
+                if self.ask_yes_no(
+                        "Do you have an approved header specification? (yes/no): "
+                ):
+                    header_spec = self.ask_required_text(
+                        "Header size/specification from plan (example: 2x10 or LVL): "
+                    )
+                    header_plies = self.ask_positive_int(
+                        "Number of header plies from plan: "
+                    )
+
+            insulation_r_value = "R-13"
+            if include_insulation:
+                insulation_r_value = self.ask_required_text(
+                    "Required wall insulation R-value from plans (example: R-13): "
+                ).upper()
+
+            components[f"Exterior wall group {number}"] = (
+                self.estimator.exterior_wall_assembly(
+                    length_feet=length,
+                    height_feet=height,
+                    quantity=quantity,
+                    include_housewrap=include_housewrap,
+                    include_insulation=include_insulation,
+                    include_drywall=include_drywall,
+                    insulation_r_value=insulation_r_value,
+                    openings=openings,
+                    header_spec=header_spec,
+                    header_plies=header_plies
+                )
+            )
+
+        if self.ask_yes_no("Include a roof covering system? (yes/no): "):
+            roof_type = self.ask_required_text(
+                "Roof type (gable/shed): "
+            ).lower()
+            while roof_type not in ["gable", "shed"]:
+                print("Please enter gable or shed.")
+                roof_type = self.ask_required_text("Roof type (gable/shed): ").lower()
+            roof_length = self.ask_positive_float("Building length (ft): ")
+            roof_width = self.ask_positive_float("Building width (ft): ")
+            include_ice = self.ask_yes_no(
+                "Include ice and water shield? (yes/no): "
+            )
+            ice_coverage = 0
+            if include_ice:
+                ice_coverage = self.ask_positive_float(
+                    "Required ice-and-water coverage from plans/local code (sq ft): "
+                )
+
+            components["Roof covering system"] = (
+                self.estimator.roof_covering_assembly(
+                    length_feet=roof_length,
+                    width_feet=roof_width,
+                    roof_type=roof_type,
+                    pitch_rise=self.ask_positive_float(
+                        "Roof pitch rise (inches per 12, example: 6): "
+                    ),
+                    overhang_inches=self.ask_nonnegative_float(
+                        "Overhang (inches, enter 0 if none): "
+                    ),
+                    include_drip_edge=self.ask_yes_no(
+                        "Include drip edge? (yes/no): "
+                    ),
+                    include_ridge_vent=(
+                        self.ask_yes_no("Include ridge vent? (yes/no): ")
+                        if roof_type == "gable" else False
+                    ),
+                    ice_water_coverage_sqft=ice_coverage,
+                    flashing_quantity=self.ask_nonnegative_int(
+                        "Plan-identified flashing locations (enter 0 if none): "
+                    )
+                )
+            )
+
+        if self.ask_yes_no("Include interior finishes? (yes/no): "):
+            wall_area = self.ask_nonnegative_float(
+                "Net interior wall area from plans (sq ft, enter 0 if none): "
+            )
+            ceiling_area = self.ask_nonnegative_float(
+                "Ceiling area from plans (sq ft, enter 0 if none): "
+            )
+            include_insulation = self.ask_yes_no(
+                "Include interior wall insulation? (yes/no): "
+            )
+            insulation_r_value = "R-13"
+            if include_insulation:
+                insulation_r_value = self.ask_required_text(
+                    "Interior wall insulation R-value from plans: "
+                ).upper()
+            include_flooring = self.ask_yes_no("Include flooring? (yes/no): ")
+            flooring_area = 0
+            flooring_type = "Flooring"
+            carton_coverage = 20
+            if include_flooring:
+                flooring_area = self.ask_positive_float("Flooring area from plans (sq ft): ")
+                flooring_type = self.ask_required_text("Flooring product/type: ")
+                carton_coverage = self.ask_positive_float(
+                    "Carton coverage from product (sq ft): "
+                )
+            baseboard_length = 0
+            if self.ask_yes_no("Include baseboard? (yes/no): "):
+                baseboard_length = self.ask_positive_float(
+                    "Baseboard length from plans (LF): "
+                )
+            door_quantity = self.ask_nonnegative_int(
+                "Interior doors from schedule (enter 0 if none): "
+            )
+            door_spec = "Interior Door Unit"
+            if door_quantity:
+                door_spec = self.ask_required_text(
+                    "Interior door specification from schedule: "
+                )
+
+            components["Interior finishes"] = (
+                self.estimator.interior_finish_assembly(
+                    net_wall_area_sqft=wall_area,
+                    ceiling_area_sqft=ceiling_area,
+                    include_insulation=include_insulation,
+                    insulation_r_value=insulation_r_value,
+                    include_drywall=self.ask_yes_no(
+                        "Include drywall and finish materials? (yes/no): "
+                    ),
+                    include_primer_and_paint=self.ask_yes_no(
+                        "Include primer and interior paint? (yes/no): "
+                    ),
+                    flooring_area_sqft=flooring_area,
+                    flooring_type=flooring_type,
+                    flooring_carton_coverage_sqft=carton_coverage,
+                    baseboard_linear_feet=baseboard_length,
+                    interior_door_quantity=door_quantity,
+                    interior_door_spec=door_spec
+                )
+            )
+
+        if not components:
+            return "No assemblies were selected, so no whole-house takeoff was created."
+
+        estimate = self.estimator.residential_house_takeoff(
+            house_name=house_name,
+            story_count=story_count,
+            components=components
+        )
+        report = create_residential_house_takeoff_report(estimate)
+        return self.finish_estimate(estimate, report)
+
     def assembly_estimate(self, command, intent):
+        if intent["type"] == "residential whole-house takeoff":
+            return self.residential_whole_house_takeoff()
+
+        if intent["type"] == "interior finish assembly":
+            print(
+                "\nInterior Finish Assembly uses measured net wall, ceiling, "
+                "and floor areas. It does not guess room layout or finishes."
+            )
+            wall_area = self.ask_nonnegative_float(
+                "Net interior wall area from plans (sq ft, enter 0 if none): "
+            )
+            ceiling_area = self.ask_nonnegative_float(
+                "Ceiling area from plans (sq ft, enter 0 if none): "
+            )
+            include_insulation = self.ask_yes_no(
+                "Include wall insulation? (yes/no): "
+            )
+            insulation_r_value = "R-13"
+
+            if include_insulation:
+                insulation_r_value = self.ask_required_text(
+                    "Wall insulation R-value from plans (example: R-13): "
+                ).upper()
+
+            include_drywall = self.ask_yes_no(
+                "Include drywall and finish materials? (yes/no): "
+            )
+            include_primer_and_paint = self.ask_yes_no(
+                "Include primer and interior paint? (yes/no): "
+            )
+            include_flooring = self.ask_yes_no(
+                "Include flooring? (yes/no): "
+            )
+            flooring_area = 0
+            flooring_type = "Flooring"
+            carton_coverage = 20
+
+            if include_flooring:
+                flooring_area = self.ask_positive_float(
+                    "Flooring area from plans (sq ft): "
+                )
+                flooring_type = self.ask_required_text(
+                    "Flooring product/type: "
+                )
+                carton_coverage = self.ask_positive_float(
+                    "Carton coverage from product (sq ft): "
+                )
+
+            include_baseboard = self.ask_yes_no(
+                "Include baseboard? (yes/no): "
+            )
+            baseboard_length = 0
+
+            if include_baseboard:
+                baseboard_length = self.ask_positive_float(
+                    "Baseboard length from plans (LF): "
+                )
+
+            door_quantity = self.ask_nonnegative_int(
+                "Number of interior doors from schedule (enter 0 if none): "
+            )
+            door_spec = "Interior Door Unit"
+
+            if door_quantity:
+                door_spec = self.ask_required_text(
+                    "Interior door specification from schedule: "
+                )
+
+            estimate = self.estimator.interior_finish_assembly(
+                net_wall_area_sqft=wall_area,
+                ceiling_area_sqft=ceiling_area,
+                include_insulation=include_insulation,
+                insulation_r_value=insulation_r_value,
+                include_drywall=include_drywall,
+                include_primer_and_paint=include_primer_and_paint,
+                flooring_area_sqft=flooring_area,
+                flooring_type=flooring_type,
+                flooring_carton_coverage_sqft=carton_coverage,
+                baseboard_linear_feet=baseboard_length,
+                interior_door_quantity=door_quantity,
+                interior_door_spec=door_spec
+            )
+            report = create_interior_finish_assembly_report(estimate)
+            return self.finish_estimate(estimate, report)
+
+        if intent["type"] == "floor system assembly":
+            print(
+                "\nFloor System Assembly requires joist and rim details "
+                "from the approved framing plan. Eden calculates member "
+                "quantities, blocking, and subfloor coverage."
+            )
+            length = self.ask_positive_float("Floor length (ft): ")
+            width = self.ask_positive_float("Floor width (ft): ")
+            joist_size = self.ask_required_text(
+                "Joist size from approved plan (example: 2x10): "
+            )
+            joist_member_length = self.ask_positive_float(
+                "Joist member length from approved plan (ft): "
+            )
+            joist_spacing = self.ask_positive_float(
+                "Joist spacing from approved plan (inches OC): "
+            )
+            rim_size = self.ask_required_text(
+                "Rim joist size from approved plan (example: 2x10): "
+            )
+            rim_stock_length = self.ask_positive_float(
+                "Rim stock length from approved plan (ft): "
+            )
+            include_blocking = self.ask_yes_no(
+                "Include plan-required joist blocking? (yes/no): "
+            )
+            blocking_rows = 1
+
+            if include_blocking:
+                blocking_rows = self.ask_positive_int(
+                    "Number of blocking rows from plan: "
+                )
+
+            estimate = self.estimator.floor_system_assembly(
+                length_feet=length,
+                width_feet=width,
+                joist_spec={
+                    "size": joist_size,
+                    "member_length_feet": joist_member_length,
+                    "spacing_inches": joist_spacing
+                },
+                rim_spec={
+                    "size": rim_size,
+                    "stock_length_feet": rim_stock_length
+                },
+                include_blocking=include_blocking,
+                blocking_rows=blocking_rows
+            )
+            report = create_floor_system_assembly_report(estimate)
+            return self.finish_estimate(estimate, report)
+
+        if intent["type"] == "roof covering assembly":
+            print(
+                "\nRoof Covering Assembly combines sloped roof sheathing, "
+                "underlayment, shingles, and selected accessories. It does "
+                "not size trusses or rafters."
+            )
+            length = self.ask_positive_float("Building length (ft): ")
+            width = self.ask_positive_float("Building width (ft): ")
+            roof_type = self.ask_input(
+                "Roof type (gable/shed): "
+            ).strip().lower()
+
+            while roof_type not in ["gable", "shed"]:
+                print("Please enter gable or shed.")
+                roof_type = self.ask_input(
+                    "Roof type (gable/shed): "
+                ).strip().lower()
+
+            pitch_rise = self.ask_positive_float(
+                "Roof pitch rise (inches per 12, example: 6): "
+            )
+            overhang = self.ask_nonnegative_float(
+                "Overhang (inches, enter 0 if none): "
+            )
+            include_drip_edge = self.ask_yes_no(
+                "Include drip edge? (yes/no): "
+            )
+            include_ridge_vent = False
+
+            if roof_type == "gable":
+                include_ridge_vent = self.ask_yes_no(
+                    "Include ridge vent? (yes/no): "
+                )
+
+            include_ice_water = self.ask_yes_no(
+                "Include ice and water shield? (yes/no): "
+            )
+            ice_water_coverage = 0
+
+            if include_ice_water:
+                ice_water_coverage = self.ask_positive_float(
+                    "Required ice-and-water coverage from plans/local code "
+                    "(sq ft): "
+                )
+
+            flashing_quantity = self.ask_nonnegative_int(
+                "Number of plan-identified flashing locations (enter 0 if none): "
+            )
+
+            estimate = self.estimator.roof_covering_assembly(
+                length_feet=length,
+                width_feet=width,
+                roof_type=roof_type,
+                pitch_rise=pitch_rise,
+                overhang_inches=overhang,
+                include_drip_edge=include_drip_edge,
+                include_ridge_vent=include_ridge_vent,
+                ice_water_coverage_sqft=ice_water_coverage,
+                flashing_quantity=flashing_quantity
+            )
+            report = create_roof_covering_assembly_report(estimate)
+            return self.finish_estimate(estimate, report)
+
+        if intent["type"] == "foundation system assembly":
+            print(
+                "\nFoundation System Assembly combines measured continuous "
+                "footings and an optional poured foundation wall. "
+                "It keeps structural reinforcement plan-required."
+            )
+            run_type_count = self.ask_positive_int(
+                "Number of different footing run types: "
+            )
+            footing_runs = []
+
+            for number in range(1, run_type_count + 1):
+                print(f"\nFooting run type {number}")
+                footing_runs.append(
+                    {
+                        "length": self.ask_positive_float(
+                            "Continuous run length (ft): "
+                        ),
+                        "width_inches": self.ask_positive_float(
+                            "Footing width (in): "
+                        ),
+                        "depth_inches": self.ask_positive_float(
+                            "Footing depth (in): "
+                        ),
+                        "quantity": self.ask_positive_int(
+                            "Number of identical runs: "
+                        )
+                    }
+                )
+
+            reinforced = self.ask_yes_no(
+                "Is this footing system reinforced? (yes/no): "
+            )
+            forms = self.ask_yes_no("Include footing forms? (yes/no): ")
+            gravel_base = self.ask_yes_no(
+                "Include gravel base below footings? (yes/no): "
+            )
+            include_foundation_wall = self.ask_yes_no(
+                "Include a poured foundation wall in this assembly? "
+                "(yes/no): "
+            )
+            wall_length = None
+            wall_height = None
+            wall_thickness = 8
+            waterproofing = False
+
+            if include_foundation_wall:
+                wall_length = self.ask_positive_float(
+                    "Total poured foundation-wall length (ft): "
+                )
+                wall_height = self.ask_positive_float(
+                    "Foundation-wall height (ft): "
+                )
+                wall_thickness = self.ask_positive_float(
+                    "Foundation-wall thickness (in): "
+                )
+                waterproofing = self.ask_yes_no(
+                    "Include foundation waterproofing? (yes/no): "
+                )
+
+            estimate = self.estimator.foundation_system_assembly(
+                footing_runs=footing_runs,
+                reinforced=reinforced,
+                forms=forms,
+                gravel_base=gravel_base,
+                include_foundation_wall=include_foundation_wall,
+                foundation_wall_length_feet=wall_length,
+                foundation_wall_height_feet=wall_height,
+                foundation_wall_thickness_inches=wall_thickness,
+                include_waterproofing=waterproofing
+            )
+            report = create_foundation_system_assembly_report(estimate)
+            return self.finish_estimate(estimate, report)
+
+        if intent["type"] == "exterior wall assembly":
+            print(
+                "\nExterior Wall Assembly combines framing, sheathing, "
+                "and optional housewrap, insulation, and drywall. "
+                "When you enter doors or windows, covering materials use "
+                "net wall area."
+            )
+
+            length = self.ask_positive_float("Wall length (ft): ")
+            height = self.ask_positive_float("Wall height (ft): ")
+            quantity = self.ask_positive_int(
+                "Number of identical wall segments: "
+            )
+            include_housewrap = self.ask_yes_no(
+                "Include housewrap? (yes/no): "
+            )
+            include_insulation = self.ask_yes_no(
+                "Include wall insulation? (yes/no): "
+            )
+            include_drywall = self.ask_yes_no(
+                "Include interior drywall? (yes/no): "
+            )
+
+            has_openings = self.ask_yes_no(
+                "Do these identical wall segments have doors or windows? "
+                "(yes/no): "
+            )
+            openings = []
+            header_spec = None
+            header_plies = None
+
+            if has_openings:
+                print(
+                    "Enter the opening layout for one wall. Eden applies "
+                    "this same layout to every identical wall segment."
+                )
+                opening_count = self.ask_positive_int(
+                    "Number of openings in each wall: "
+                )
+
+                for number in range(1, opening_count + 1):
+                    opening_type = self.ask_input(
+                        f"Opening {number} type (door/window): "
+                    ).lower()
+
+                    while opening_type not in ["door", "window"]:
+                        print("Please enter either door or window.")
+                        opening_type = self.ask_input(
+                            f"Opening {number} type (door/window): "
+                        ).lower()
+
+                    openings.append(
+                        {
+                            "type": opening_type,
+                            "width_feet": self.ask_positive_float(
+                                f"Opening {number} width (ft): "
+                            ),
+                            "height_feet": self.ask_positive_float(
+                                f"Opening {number} height (ft): "
+                            )
+                        }
+                    )
+
+                has_header_schedule = self.ask_yes_no(
+                    "Do you have an approved header specification for "
+                    "these openings? (yes/no): "
+                )
+
+                if has_header_schedule:
+                    header_spec = self.ask_required_text(
+                        "Header size/specification from plan "
+                        "(example: 2x10, 2x12, or LVL): "
+                    )
+                    header_plies = self.ask_positive_int(
+                        "Number of header plies from plan: "
+                    )
+                else:
+                    print(
+                        "Header material will remain plan-required and "
+                        "will not be added to the material takeoff."
+                    )
+
+            insulation_r_value = "R-13"
+            if include_insulation:
+                insulation_r_value = self.ask_required_text(
+                    "Required wall insulation R-value from plans "
+                    "(example: R-13): "
+                ).upper()
+
+            estimate = self.estimator.exterior_wall_assembly(
+                length_feet=length,
+                height_feet=height,
+                quantity=quantity,
+                include_housewrap=include_housewrap,
+                include_insulation=include_insulation,
+                include_drywall=include_drywall,
+                insulation_r_value=insulation_r_value,
+                openings=openings,
+                header_spec=header_spec,
+                header_plies=header_plies
+            )
+            report = create_exterior_wall_assembly_report(estimate)
+            return self.finish_estimate(estimate, report)
+
         if intent["type"] != "backyard studio shell":
             return (
                 "I’m not set up for that project assembly yet. "

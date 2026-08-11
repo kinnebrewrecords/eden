@@ -67,11 +67,26 @@ with openings_feature:
 
 st.markdown("#### Project assemblies")
 st.info(
-    "New: **Backyard Studio Shell** combines a slab, framing, sheathing, "
-    "shingles, and optional interior finish into one project material "
-    "takeoff."
+    "Assemblies combine related work into one traceable material takeoff. "
+    "Each one lists its assumptions and plan-required exclusions so you can "
+    "review the scope before ordering."
 )
-st.code("estimate a backyard studio shell", language=None)
+st.code(
+    "estimate a whole house takeoff\n"
+    "estimate a two story house takeoff\n"
+    "estimate a foundation system assembly\n"
+    "estimate an exterior wall assembly\n"
+    "estimate a roof covering assembly\n"
+    "estimate a floor system assembly\n"
+    "estimate an interior finish assembly\n"
+    "estimate a backyard studio shell",
+    language=None
+)
+st.caption(
+    "Whole-House Takeoff guides you through the systems actually included "
+    "in the plan. It preserves each system as a separate component while "
+    "also producing one combined project material takeoff."
+)
 
 getting_started_tab, commands_tab, estimating_tab, bids_tab, guidance_tab = (
     st.tabs(
@@ -134,9 +149,11 @@ with commands_tab:
 
     st.subheader("Useful examples")
     st.code(
+        "estimate a whole house takeoff\n"
         "estimate a patio\n"
-        "estimate a framed wall with an opening\n"
-        "estimate batt insulation\n"
+            "estimate a framed wall with an opening\n"
+            "estimate an exterior wall assembly\n"
+            "estimate batt insulation\n"
         "estimate roof sheathing",
         language=None
     )
@@ -153,6 +170,11 @@ with estimating_tab:
             "estimate a concrete patio\n"
             "estimate a concrete footing\n"
             "estimate a footing system\n"
+            "estimate a foundation system assembly\n"
+            "estimate a whole house takeoff\n"
+            "estimate a roof covering assembly\n"
+            "estimate a floor system assembly\n"
+            "estimate an interior finish assembly\n"
             "estimate a concrete pier\n"
             "estimate custom flatwork",
             language=None
@@ -173,6 +195,7 @@ with estimating_tab:
             "estimate a framed wall\n"
             "estimate a framed wall with an opening\n"
             "estimate a wall framing package\n"
+            "estimate an exterior wall assembly\n"
             "estimate roof trusses\n"
             "estimate framing hardware\n"
             "estimate stair framing\n"
@@ -190,8 +213,10 @@ with estimating_tab:
         )
 
         st.caption(
-            "Need a starter project instead of a single item? Try "
-            "`estimate a backyard studio shell`."
+            "Need a repeatable system instead of a single item? Try "
+            "`estimate an exterior wall assembly` for straight exterior "
+            "wall segments, or `estimate a backyard studio shell` for a "
+            "starter project package."
         )
 
     with exterior_tab:

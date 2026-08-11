@@ -75,6 +75,38 @@ class InsulationEstimator:
             "material_takeoff": material_takeoff
         }
 
+    def batt_insulation_area(
+            self,
+            area_sqft,
+            r_value="R-13",
+            waste_percent=None
+    ):
+        """Estimate batt insulation from net measured wall area."""
+        waste_percent = self._get_insulation_waste_percent(waste_percent)
+        batts = math.ceil(
+            area_sqft * (1 + waste_percent / 100) /
+            Settings.BATT_INSULATION_COVERAGE_PER_BATT_SQFT
+        )
+        bundles = math.ceil(batts / Settings.BATTS_PER_BUNDLE)
+        material = f"{r_value} Batt Insulation"
+
+        return {
+            "type": "Batt Insulation",
+            "material": material,
+            "r_value": r_value,
+            "area": round(area_sqft, 2),
+            "batts": batts,
+            "bundles": bundles,
+            "waste_percent": waste_percent,
+            "material_takeoff": [
+                {
+                    "item": material,
+                    "unit": "BUNDLES",
+                    "quantity": bundles
+                }
+            ]
+        }
+
     def blown_insulation(
             self,
             length,

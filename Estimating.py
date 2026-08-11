@@ -2149,6 +2149,62 @@ class Estimator:
 
         return combined
 
+    def residential_house_takeoff(
+            self,
+            house_name,
+            components,
+            story_count=1
+    ):
+        """Combine separately measured residential assemblies into one bid review.
+
+        This method deliberately receives completed assemblies instead of
+        inventing structural or architectural details.  That keeps a whole
+        house takeoff traceable back to the plan-confirmed component that
+        produced every material row.
+        """
+        if not components:
+            raise ValueError(
+                "Add at least one measured house component before combining "
+                "a whole-house takeoff."
+            )
+
+        material_takeoff = self._combine_material_takeoffs(
+            *[
+                component["material_takeoff"]
+                for component in components.values()
+            ]
+        )
+
+        return {
+            "type": "Residential Whole-House Takeoff",
+            "house_name": house_name,
+            "story_count": story_count,
+            "component_estimates": components,
+            "component_count": len(components),
+            "material_takeoff": material_takeoff,
+            "assumptions": [
+                "Each component uses plan-confirmed measurements entered "
+                "during this takeoff.",
+                "Matching material rows are combined for a project-level "
+                "ordering summary.",
+                "Components remain separate in the saved estimate for "
+                "trade-by-trade review."
+            ],
+            "exclusions": [
+                "Structural member selection, engineering, and connections "
+                "unless specifically provided from approved plans",
+                "Sitework, excavation, utilities, permits, inspections, "
+                "labor, equipment, and subcontractor scope unless separately estimated",
+                "Unentered rooms, wall groups, roof planes, openings, and "
+                "finish selections"
+            ],
+            "scope_note": (
+                "Review every component against the approved plan set before "
+                "ordering or issuing a customer proposal. This is a combined "
+                "material takeoff, not a structural design or permit estimate."
+            )
+        }
+
     def backyard_studio_shell(
             self,
             length,
@@ -2280,6 +2336,615 @@ class Estimator:
                 "Siding, trim, and exterior weatherproofing",
                 "Electrical, plumbing, HVAC, permits, and labor"
             ]
+        }
+
+    def exterior_wall_assembly(
+            self,
+            length_feet,
+            height_feet,
+            quantity=1,
+            stud_spacing_inches=None,
+            include_housewrap=True,
+            include_insulation=False,
+            include_drywall=False,
+            insulation_r_value="R-13",
+            openings=None,
+            header_spec=None,
+            header_plies=None,
+            waste_percent=None
+    ):
+        """Create a traceable starter assembly for repeated exterior walls.
+
+        This is deliberately a measured wall *segment* assembly. It does not
+        invent structural or opening details from a generic wall size.
+        """
+        gross_wall_area = length_feet * height_feet * quantity
+        openings = openings or []
+
+        opening_area_per_wall = sum(
+            opening["width_feet"] * opening["height_feet"]
+            for opening in openings
+        )
+
+        if opening_area_per_wall >= length_feet * height_feet:
+            raise ValueError(
+                "Openings cannot equal or exceed the area of one wall."
+            )
+
+        if openings:
+            framing = self.frame_wall_with_openings(
+                length_feet=length_feet,
+                height_feet=height_feet,
+                openings=openings,
+                quantity=quantity,
+                stud_spacing_inches=stud_spacing_inches,
+                waste_percent=waste_percent,
+                header_spec=header_spec,
+                header_plies=header_plies
+            )
+            net_wall_area = framing["net_wall_area_sqft"]
+            components = {
+                "Wall and opening framing": framing,
+                "Wall sheathing": self.lumber.wall_sheathing_area(
+                    net_wall_area,
+                    waste_percent=framing["waste_percent"]
+                )
+            }
+        else:
+            framing = self.wall_framing_package(
+                length_feet=length_feet,
+                height_feet=height_feet,
+                quantity=quantity,
+                stud_spacing_inches=stud_spacing_inches,
+                include_sheathing=True,
+                waste_percent=waste_percent
+            )
+            net_wall_area = gross_wall_area
+            components = {
+                "Wall framing and sheathing": framing
+            }
+
+        if include_housewrap:
+            components["Housewrap"] = self.housewrap(
+                net_wall_area,
+                waste_percent=framing["waste_percent"]
+            )
+
+        if include_insulation:
+            components["Wall insulation"] = self.insulation.batt_insulation_area(
+                net_wall_area,
+                r_value=insulation_r_value,
+                waste_percent=framing["waste_percent"]
+            )
+
+        if include_drywall:
+            components["Interior wall drywall"] = self.drywall.wall_drywall_area(
+                net_wall_area,
+                waste_percent=framing["waste_percent"]
+            )
+
+        return {
+            "type": "Exterior Wall Assembly",
+            "dimensions": {
+                "length": length_feet,
+                "height": height_feet
+            },
+            "quantity": quantity,
+            "gross_wall_area_sqft": round(gross_wall_area, 2),
+            "net_wall_area_sqft": round(net_wall_area, 2),
+            "stud_spacing_inches": (
+                f"{framing['stud_spacing_inches']} in OC"
+                if openings else
+                framing["details"]["Stud spacing"]
+            ),
+            "openings": openings,
+            "header_spec": (
+                framing.get("header_spec") if openings else None
+            ),
+            "header_plies": (
+                framing.get("header_plies") if openings else None
+            ),
+            "include_housewrap": include_housewrap,
+            "include_insulation": include_insulation,
+            "include_drywall": include_drywall,
+            "insulation_r_value": (
+                insulation_r_value if include_insulation else None
+            ),
+            "waste_percent": framing["waste_percent"],
+            "component_estimates": components,
+            "material_takeoff": self._combine_material_takeoffs(
+                *[
+                    component["material_takeoff"]
+                    for component in components.values()
+                ]
+            ),
+            "assumptions": [
+                "Straight, repeated wall segments with 2x4 framing.",
+                "Wall sheathing is included.",
+                (
+                    "Covering materials use net wall area after repeated "
+                    "openings are deducted."
+                    if openings else
+                    "Wall area is gross area because no openings were entered."
+                )
+            ],
+            "exclusions": [
+                (
+                    "Door and window units, flashing, and installation "
+                    "accessories"
+                    if openings else
+                    "Doors, windows, headers, and opening framing"
+                ),
+                "Engineered design, hold-downs, and structural hardware",
+                "Flashing tape, siding, trim, fasteners, and sealants",
+                "Electrical, plumbing, labor, permits, and local code review"
+            ],
+            "scope_note": (
+                "For this assembly, every identical wall segment uses the "
+                "same opening layout. Estimate non-repeating walls "
+                "separately and review structural details against approved "
+                "plans."
+            )
+        }
+
+    def foundation_system_assembly(
+            self,
+            footing_runs,
+            reinforced=True,
+            forms=True,
+            gravel_base=False,
+            include_foundation_wall=False,
+            foundation_wall_length_feet=None,
+            foundation_wall_height_feet=None,
+            foundation_wall_thickness_inches=8,
+            include_waterproofing=False,
+            waste_percent=None
+    ):
+        """Create a traceable residential footing and wall foundation scope.
+
+        Footing runs are measured independently. Foundation-wall length is
+        requested separately because interior footings and stem walls often
+        do not share the same total length.
+        """
+        plan_required_rebar = (
+            {
+                "status": "plan_required",
+                "source": "approved_structural_plan",
+                "schedule": None
+            }
+            if reinforced else None
+        )
+        footing_system = self.concrete_footing_system(
+            footing_runs,
+            reinforced=reinforced,
+            rebar=plan_required_rebar,
+            forms=forms,
+            gravel_base=gravel_base,
+            waste_percent=waste_percent,
+            build_type="Residential Foundation Footing Package"
+        )
+        components = {
+            "Continuous footing system": footing_system
+        }
+
+        if include_foundation_wall:
+            if (
+                    not foundation_wall_length_feet or
+                    not foundation_wall_height_feet
+            ):
+                raise ValueError(
+                    "Foundation-wall length and height are required."
+                )
+
+            components["Foundation wall"] = self.concrete_foundation_wall(
+                foundation_wall_length_feet,
+                foundation_wall_height_feet,
+                foundation_wall_thickness_inches,
+                reinforced=reinforced,
+                rebar=plan_required_rebar,
+                forms=forms,
+                waterproofing=include_waterproofing,
+                build_type="Residential Foundation Wall Package",
+                waste_percent=footing_system["waste_percent"]
+            )
+
+        foundation_wall_estimate = components.get("Foundation wall")
+
+        return {
+            "type": "Residential Foundation System Assembly",
+            "footing_runs": footing_system["footing_runs"],
+            "footing_run_count": footing_system["run_count"],
+            "footing_cubic_yards": footing_system["cubic_yards"],
+            "footing_order_quantity": footing_system["order_quantity"],
+            "include_foundation_wall": include_foundation_wall,
+            "foundation_wall": (
+                {
+                    "length": foundation_wall_length_feet,
+                    "height": foundation_wall_height_feet,
+                    "thickness_inches": foundation_wall_thickness_inches,
+                    "waterproofing": include_waterproofing
+                }
+                if include_foundation_wall else None
+            ),
+            "foundation_wall_cubic_yards": (
+                foundation_wall_estimate["cubic_yards"]
+                if foundation_wall_estimate else None
+            ),
+            "foundation_wall_order_quantity": (
+                foundation_wall_estimate["order_quantity"]
+                if foundation_wall_estimate else None
+            ),
+            "reinforced": reinforced,
+            "forms": forms,
+            "gravel_base": gravel_base,
+            "waste_percent": footing_system["waste_percent"],
+            "component_estimates": components,
+            "material_takeoff": self._combine_material_takeoffs(
+                *[
+                    component["material_takeoff"]
+                    for component in components.values()
+                ]
+            ),
+            "assumptions": [
+                "Footing runs are measured continuous runs before waste.",
+                "Footing concrete is rounded once for the entire footing system.",
+                (
+                    "Foundation-wall concrete is a separate pour and is "
+                    "shown as a separate component."
+                    if include_foundation_wall else
+                    "Foundation walls are not included."
+                )
+            ],
+            "exclusions": [
+                "Excavation, haul-off, dewatering, soil correction, and backfill",
+                "Drain tile, stone, sump equipment, and drainage design",
+                "Rebar quantities, engineering, stepped elevations, and bearing design",
+                "Labor, permits, inspections, and local code review"
+            ],
+            "scope_note": (
+                "Footing sizes, reinforcing, elevations, foundation-wall "
+                "layout, waterproofing system, and site drainage must match "
+                "approved plans and site conditions. Footing and wall "
+                "concrete are separate pours; do not treat their combined "
+                "takeoff total as one truck order."
+            )
+        }
+
+    def roof_covering_assembly(
+            self,
+            length_feet,
+            width_feet,
+            roof_type="gable",
+            pitch_rise=6.0,
+            overhang_inches=12.0,
+            include_drip_edge=True,
+            include_ridge_vent=True,
+            ice_water_coverage_sqft=0,
+            flashing_quantity=0,
+            waste_percent=None
+    ):
+        """Create a measured roof-covering assembly, not roof framing."""
+        roof_waste_percent = self.roofing._get_roofing_waste_percent(
+            waste_percent
+        )
+        sheathing = self.roof_sheathing(
+            length_feet,
+            width_feet,
+            roof_type=roof_type,
+            pitch_rise=pitch_rise,
+            overhang_inches=overhang_inches,
+            waste_percent=roof_waste_percent
+        )
+        shingles = self.shingles(
+            length_feet,
+            width_feet,
+            roof_type=roof_type,
+            pitch_rise=pitch_rise,
+            overhang_inches=overhang_inches,
+            waste_percent=roof_waste_percent
+        )
+        underlayment = self.underlayment(
+            length_feet,
+            width_feet,
+            roof_type=roof_type,
+            pitch_rise=pitch_rise,
+            overhang_inches=overhang_inches,
+            waste_percent=roof_waste_percent
+        )
+        components = {
+            "Roof sheathing": sheathing,
+            "Roof shingles": shingles,
+            "Roof underlayment": underlayment
+        }
+        roof_length = sheathing["roof_length"]
+        rafter_length = sheathing["rafter_length"]
+        roof_type = sheathing["roof_type"]
+
+        drip_edge_length = (
+            2 * roof_length + 4 * rafter_length
+            if roof_type == "gable" else
+            2 * roof_length + 2 * rafter_length
+        )
+
+        if include_drip_edge:
+            components["Drip edge"] = self.drip_edge(
+                drip_edge_length,
+                waste_percent=shingles["waste_percent"]
+            )
+
+        if include_ridge_vent and roof_type == "gable":
+            components["Ridge vent"] = self.ridge_vent(
+                roof_length,
+                waste_percent=shingles["waste_percent"]
+            )
+
+        if ice_water_coverage_sqft > 0:
+            components["Ice and water shield"] = self.ice_water_shield(
+                ice_water_coverage_sqft,
+                waste_percent=shingles["waste_percent"]
+            )
+
+        if flashing_quantity > 0:
+            components["Roof flashing"] = self.flashing(
+                flashing_quantity,
+                waste_percent=shingles["waste_percent"]
+            )
+
+        return {
+            "type": "Residential Roof Covering Assembly",
+            "dimensions": {
+                "length": length_feet,
+                "width": width_feet
+            },
+            "roof_type": roof_type,
+            "pitch_rise": sheathing["pitch_rise"],
+            "overhang_inches": sheathing["overhang_inches"],
+            "roof_area_sqft": sheathing["area"],
+            "roof_length_feet": roof_length,
+            "rafter_length_feet": rafter_length,
+            "drip_edge_length_feet": round(drip_edge_length, 2),
+            "include_drip_edge": include_drip_edge,
+            "include_ridge_vent": include_ridge_vent and roof_type == "gable",
+            "ice_water_coverage_sqft": ice_water_coverage_sqft,
+            "flashing_quantity": flashing_quantity,
+            "waste_percent": shingles["waste_percent"],
+            "component_estimates": components,
+            "material_takeoff": self._combine_material_takeoffs(
+                *[
+                    component["material_takeoff"]
+                    for component in components.values()
+                ]
+            ),
+            "assumptions": [
+                "Roof coverage uses the entered pitch and overhangs.",
+                "Drip edge follows the calculated roof perimeter.",
+                "Ice-and-water coverage is measured from plans or local requirements."
+            ],
+            "exclusions": [
+                "Trusses, rafters, blocking, framing connections, and structural design",
+                "Valleys, hips, dormers, skylights, penetrations, and complex flashing unless entered",
+                "Roof removal, decking repairs, labor, permits, and local code review"
+            ],
+            "scope_note": (
+                "This is a roof-covering assembly for simple gable or shed "
+                "geometry. Verify roof planes, valleys, penetrations, "
+                "ventilation, and manufacturer installation requirements "
+                "against approved plans."
+            )
+        }
+
+    def floor_system_assembly(
+            self,
+            length_feet,
+            width_feet,
+            joist_spec,
+            rim_spec,
+            include_blocking=False,
+            blocking_rows=1,
+            waste_percent=None
+    ):
+        """Create a measured floor system from plan-specified members."""
+        if not joist_spec or not rim_spec:
+            raise ValueError(
+                "Floor joist and rim specifications from the plan are required."
+            )
+
+        joists = self.lumber.floor_joists(
+            length_feet,
+            width_feet,
+            joist_spec=joist_spec,
+            waste_percent=waste_percent
+        )
+        rim_joists = self.lumber.rim_joists(
+            length_feet,
+            width_feet,
+            rim_spec=rim_spec,
+            waste_percent=joists["waste_percent"]
+        )
+        subfloor = self.lumber.subfloor_sheathing(
+            length_feet,
+            width_feet,
+            waste_percent=joists["waste_percent"]
+        )
+        components = {
+            "Floor joists": joists,
+            "Rim joists": rim_joists,
+            "Subfloor sheathing": subfloor
+        }
+
+    def interior_finish_assembly(
+            self,
+            net_wall_area_sqft,
+            ceiling_area_sqft,
+            include_insulation=False,
+            insulation_r_value="R-13",
+            include_drywall=True,
+            include_primer_and_paint=True,
+            flooring_area_sqft=0,
+            flooring_type="Flooring",
+            flooring_carton_coverage_sqft=20,
+            baseboard_linear_feet=0,
+            interior_door_quantity=0,
+            interior_door_spec="Interior Door Unit"
+    ):
+        """Create a measured interior-finish assembly from plan takeoff areas."""
+        if net_wall_area_sqft < 0 or ceiling_area_sqft < 0:
+            raise ValueError("Wall and ceiling areas cannot be negative.")
+
+        components = {}
+        drywall_finish_area = net_wall_area_sqft + ceiling_area_sqft
+
+        if include_insulation and net_wall_area_sqft > 0:
+            components["Wall insulation"] = self.insulation.batt_insulation_area(
+                net_wall_area_sqft,
+                r_value=insulation_r_value
+            )
+
+        if include_drywall:
+            if net_wall_area_sqft > 0:
+                components["Wall drywall"] = self.drywall.wall_drywall_area(
+                    net_wall_area_sqft
+                )
+            if ceiling_area_sqft > 0:
+                components["Ceiling drywall"] = self.drywall.ceiling_drywall_area(
+                    ceiling_area_sqft
+                )
+            if drywall_finish_area > 0:
+                components.update(
+                    {
+                        "Joint compound": self.drywall_finish.joint_compound(
+                            drywall_finish_area
+                        ),
+                        "Drywall tape": self.drywall_finish.drywall_tape(
+                            drywall_finish_area
+                        ),
+                        "Drywall screws": self.drywall_finish.drywall_screws(
+                            drywall_finish_area
+                        ),
+                        "Drywall sanding": self.drywall_finish.drywall_sanding(
+                            drywall_finish_area
+                        )
+                    }
+                )
+
+        if include_primer_and_paint and drywall_finish_area > 0:
+            components["Drywall primer"] = self.drywall_finish.primer(
+                drywall_finish_area
+            )
+
+            if net_wall_area_sqft > 0:
+                components["Interior wall paint"] = (
+                    self.drywall_finish.interior_paint(
+                        net_wall_area_sqft
+                    )
+                )
+
+            if ceiling_area_sqft > 0:
+                components["Ceiling paint"] = (
+                    self.drywall_finish.ceiling_paint(
+                        ceiling_area_sqft
+                    )
+                )
+
+        if flooring_area_sqft > 0:
+            components["Flooring"] = self.flooring(
+                flooring_area_sqft,
+                flooring_type=flooring_type,
+                carton_coverage_sqft=flooring_carton_coverage_sqft
+            )
+
+        if baseboard_linear_feet > 0:
+            components["Baseboard"] = self.baseboard(baseboard_linear_feet)
+
+        if interior_door_quantity > 0:
+            components["Interior doors"] = self.interior_doors(
+                interior_door_quantity,
+                door_spec=interior_door_spec
+            )
+
+        if not components:
+            raise ValueError("Choose at least one interior finish component.")
+
+        return {
+            "type": "Interior Finish Assembly",
+            "net_wall_area_sqft": round(net_wall_area_sqft, 2),
+            "ceiling_area_sqft": round(ceiling_area_sqft, 2),
+            "drywall_finish_area_sqft": round(drywall_finish_area, 2),
+            "include_insulation": include_insulation,
+            "insulation_r_value": insulation_r_value if include_insulation else None,
+            "include_drywall": include_drywall,
+            "include_primer_and_paint": include_primer_and_paint,
+            "flooring_area_sqft": flooring_area_sqft,
+            "flooring_type": flooring_type if flooring_area_sqft > 0 else None,
+            "baseboard_linear_feet": baseboard_linear_feet,
+            "interior_door_quantity": interior_door_quantity,
+            "component_estimates": components,
+            "material_takeoff": self._combine_material_takeoffs(
+                *[
+                    component["material_takeoff"]
+                    for component in components.values()
+                ]
+            ),
+            "assumptions": [
+                "Wall and ceiling areas are net measured coverage areas from plans.",
+                "Drywall finish and primer use combined measured wall and ceiling area; wall and ceiling paint are calculated separately.",
+                "Flooring carton coverage and door specifications must match the selected products."
+            ],
+            "exclusions": [
+                "Drywall texture, corner bead, trim profiles, hardware, transitions, and underlayment unless separately estimated",
+                "Cabinets, countertops, tile, showers, appliances, labor, and permits",
+                "Moisture conditions, substrate repairs, and manufacturer installation requirements"
+            ],
+            "scope_note": (
+                "Verify room-by-room areas, ceiling heights, wet-area "
+                "materials, door schedule, finish selections, and product "
+                "coverage before ordering."
+            )
+        }
+
+        if include_blocking:
+            components["Joist blocking"] = self.lumber.blocking(
+                width_feet,
+                stud_spacing_inches=joist_spec["spacing_inches"],
+                rows=blocking_rows,
+                waste_percent=joists["waste_percent"],
+                material_size=joist_spec["size"]
+            )
+
+        return {
+            "type": "Residential Floor System Assembly",
+            "dimensions": {
+                "length": length_feet,
+                "width": width_feet
+            },
+            "floor_area_sqft": round(length_feet * width_feet, 2),
+            "joist_spec": joist_spec,
+            "rim_spec": rim_spec,
+            "include_blocking": include_blocking,
+            "blocking_rows": blocking_rows if include_blocking else 0,
+            "waste_percent": joists["waste_percent"],
+            "component_estimates": components,
+            "material_takeoff": self._combine_material_takeoffs(
+                *[
+                    component["material_takeoff"]
+                    for component in components.values()
+                ]
+            ),
+            "assumptions": [
+                "Joist size, member length, and spacing come from the approved framing plan.",
+                "Rim material and stock length come from the approved framing plan.",
+                "Subfloor uses 4x8 3/4 in T&G OSB coverage with the selected waste allowance."
+            ],
+            "exclusions": [
+                "Beams, girders, posts, hangers, straps, adhesives, fasteners, and bridging unless separately estimated",
+                "Bearing verification, point loads, openings, stair framing, and structural design",
+                "Labor, permits, inspections, and local code review"
+            ],
+            "scope_note": (
+                "Do not use this assembly to select structural members. "
+                "Joist layout, rim detail, blocking, beams, connections, "
+                "and openings must match approved framing plans."
+            )
         }
 
     #########################
