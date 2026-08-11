@@ -211,10 +211,6 @@ if "eden_pending_command" not in st.session_state:
 if "eden_pending_answers" not in st.session_state:
     st.session_state.eden_pending_answers = []
 
-if "eden_ai" not in st.session_state:
-    st.session_state.eden_ai = EdenAI()
-
-
 def add_message(role, content):
     st.session_state.eden_browser_messages.append(
         {
@@ -224,8 +220,39 @@ def add_message(role, content):
     )
 
 
+def should_try_ai_fallback(result):
+    """Use AI only after Eden's deterministic chat cannot understand."""
+    return (
+        result.get("kind") == "complete" and
+        str(result.get("text", "")).strip().lower()
+        == "i don't understand yet."
+    )
+
+
+def normalize_with_ai_as_last_resort(command):
+    """Make at most one optional AI call for an otherwise unknown request."""
+    eden_ai = st.session_state.get("eden_ai")
+
+    if eden_ai is None:
+        eden_ai = EdenAI()
+        st.session_state.eden_ai = eden_ai
+
+    return eden_ai.normalize_new_request(command)
+
+
 def handle_eden_result(command, answers):
     result = run_eden(command, answers)
+
+    if not answers and should_try_ai_fallback(result):
+        try:
+            normalized_command = normalize_with_ai_as_last_resort(command)
+
+            if normalized_command.lower().strip() != command.lower().strip():
+                result = run_eden(normalized_command, [])
+        except Exception:
+            # A missing key, API outage, or exhausted credit never stops
+            # Eden's code-based estimator from responding.
+            pass
 
     if result["kind"] == "question":
         st.session_state.eden_pending_command = result.get(
@@ -362,13 +389,11 @@ if prompt:
         )
 
     else:
-        try:
-            command = st.session_state.eden_ai.normalize_new_request(
-                prompt
-            )
-        except Exception:
-            # Eden remains usable if the API is unavailable or out of credit.
-            command = prompt
+        # Normal chat stays calculation-first: Eden's intent detector,
+        # parameter extractor, and command handlers receive the exact user
+        # request without an AI rewrite or API call. AI is considered only
+        # after that code reports it cannot understand the request.
+        command = prompt
         answers = []
 
     handle_eden_result(
