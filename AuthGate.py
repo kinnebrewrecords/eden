@@ -16,17 +16,10 @@ def require_eden_login():
     user = current_user()
 
     if user:
-        verified_user_id = st.session_state.get(
-            "eden_access_verified_user_id"
-        )
-
-        if (
-                verified_user_id == user["user_id"]
-                or user.get("access_verified_user_id") == user["user_id"]
-        ):
-            access = {"has_access": True}
-        else:
-            access = current_access()
+        # Check the current entitlement on every protected-page load.
+        # A cached prior verification must never grant access to a user
+        # whose subscription or beta entitlement is no longer active.
+        access = current_access()
 
         if not access.get("has_access"):
             st.markdown(
@@ -103,3 +96,4 @@ def require_eden_login():
         "New to Eden? Create your account through the Eden website after "
         "starting your trial or subscription."
     )
+    st.stop()
