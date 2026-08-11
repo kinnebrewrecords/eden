@@ -879,6 +879,10 @@ if material_takeoff:
             material_takeoff,
             project_pricing_region
         )
+        project_pricing_supplier = profile.get(
+            "preferred_supplier",
+            ""
+        )
 
         st.subheader("Project Material Cost Preview")
         st.caption(
@@ -940,18 +944,15 @@ if material_takeoff:
 
         if priced_takeoff["unpriced_items"]:
             st.warning(
-                "This total excludes items without a saved price. Add or "
-                "update their material prices in Settings > Regional Pricing, "
-                "then return here to review the updated bid."
+                "This total excludes items without a saved price. Add unit "
+                "prices below, or save them later in Settings > Regional Pricing."
+            )
+            st.caption(
+                "Eden automatically uses a regional average whenever saved "
+                "supplier prices exist for the same material and unit."
             )
 
-        if False and priced_takeoff["unpriced_items"]:
-            st.warning(
-                "This total excludes items without a saved price. Add or "
-                "update their material prices in Settings > Regional Pricing, "
-                "then return here to review the updated bid."
-            )
-
+        if priced_takeoff["unpriced_items"]:
             with st.expander(
                     "Price Missing Takeoff Items",
                     expanded=True
@@ -964,8 +965,15 @@ if material_takeoff:
                 with st.form("missing_project_prices_form"):
                     missing_price_supplier = st.text_input(
                         "Supplier or store",
-                        value=project_pricing_supplier,
-                        placeholder="Example: Home Depot or ABC Ready Mix"
+                        value=(
+                            project_pricing_supplier or
+                            "Company price"
+                        ),
+                        placeholder="Example: Home Depot or ABC Ready Mix",
+                        help=(
+                            "This labels the saved unit price so you can "
+                            "compare it later in Settings."
+                        )
                     )
 
                     missing_price_date = st.date_input(

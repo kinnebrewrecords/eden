@@ -71,10 +71,12 @@ class EstimatingPreferences:
             json.dump(self.data, file, indent=4)
 
     def get(self, setting_name):
-        return self.data.get(
-            setting_name,
-            self.defaults.get(setting_name)
-        )
+        value = self.data.get(setting_name)
+
+        if value is None:
+            return self.defaults.get(setting_name)
+
+        return value
 
     def update(self, values):
         for setting_name, value in values.items():
