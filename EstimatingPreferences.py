@@ -19,6 +19,15 @@ class EstimatingPreferences:
             "gravel_base_depth_inches": (
                 Settings.GRAVEL_BASE_DEPTH_INCHES
             ),
+            "aggregate_base_material": (
+                Settings.AGGREGATE_BASE_MATERIAL
+            ),
+            "aggregate_base_tons_per_cubic_yard": (
+                Settings.AGGREGATE_BASE_TONS_PER_CUBIC_YARD
+            ),
+            "aggregate_base_purchase_unit": (
+                Settings.AGGREGATE_BASE_PURCHASE_UNIT
+            ),
             "form_board_length_feet": (
                 Settings.FORM_BOARD_LENGTH_FEET
             ),

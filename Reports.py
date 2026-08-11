@@ -1,5 +1,32 @@
 class ReportGenerator:
 
+    def create_aggregate_base_report(self, estimate):
+        return f"""
+
+                AGGREGATE BASE ESTIMATE
+
+        Material:
+        {estimate['material']}
+
+        Coverage Area:
+        {estimate['area_sqft']} sq ft
+
+        Base Depth:
+        {estimate['base_depth_inches']} inches
+
+        Volume:
+        {estimate['cubic_yards']} CY
+
+        Estimated Weight:
+        {estimate['estimated_tons']} tons
+
+        Purchase Quantity:
+        {estimate['order_quantity']} {estimate['purchase_unit']}
+
+        Waste:
+        {estimate['waste_percent']}%
+        """
+
     def create_concrete_slab_report(self, estimate):
 
         rebar = estimate.get("rebar")

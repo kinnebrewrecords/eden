@@ -403,6 +403,46 @@ with defaults_tab:
                 step=0.5
             )
 
+            aggregate_material = st.text_input(
+                "Default aggregate base material",
+                value=str(preferences.get(
+                    "aggregate_base_material"
+                )),
+                placeholder="Example: #57 Stone or Crusher Run"
+            )
+
+            aggregate_density = st.number_input(
+                "Aggregate density (tons per cubic yard)",
+                min_value=0.5,
+                max_value=3.0,
+                value=float(preferences.get(
+                    "aggregate_base_tons_per_cubic_yard"
+                )),
+                step=0.05,
+                help=(
+                    "Use the density supplied by your quarry or supplier. "
+                    "Eden uses this to show an estimated tonnage."
+                )
+            )
+
+            aggregate_purchase_unit = st.selectbox(
+                "Default aggregate purchase unit",
+                ["CY", "TONS"],
+                index=["CY", "TONS"].index(
+                    str(preferences.get(
+                        "aggregate_base_purchase_unit"
+                    )).upper()
+                    if str(preferences.get(
+                        "aggregate_base_purchase_unit"
+                    )).upper() in ["CY", "TONS"]
+                    else "CY"
+                ),
+                help=(
+                    "Eden always calculates both cubic yards and tons. "
+                    "This chooses the quantity used for purchasing and pricing."
+                )
+            )
+
             form_board_length = st.number_input(
                 "Default form board length (ft)",
                 min_value=4.0,
@@ -435,6 +475,13 @@ with defaults_tab:
             preferences.update(
                 {
                     "gravel_base_depth_inches": gravel_depth,
+                    "aggregate_base_material": aggregate_material,
+                    "aggregate_base_tons_per_cubic_yard": (
+                        aggregate_density
+                    ),
+                    "aggregate_base_purchase_unit": (
+                        aggregate_purchase_unit
+                    ),
                     "form_board_length_feet": form_board_length,
                     "concrete_form_tube_length_feet": (
                         form_tube_length

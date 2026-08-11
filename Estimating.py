@@ -84,6 +84,24 @@ class Estimator:
 
         ##################
 
+    def aggregate_base(
+            self,
+            area_sqft,
+            depth_inches=None,
+            material=None,
+            tons_per_cubic_yard=None,
+            purchase_unit=None,
+            waste_percent=None
+    ):
+        return self.concrete.aggregate_base(
+            area_sqft=area_sqft,
+            depth_inches=depth_inches,
+            material=material,
+            tons_per_cubic_yard=tons_per_cubic_yard,
+            purchase_unit=purchase_unit,
+            waste_percent=waste_percent
+        )
+
     def concrete_slab(
 
             self,
@@ -997,6 +1015,93 @@ class Estimator:
 
             header_plies=header_plies
 
+        )
+
+    def framing_hardware(self, hardware_items):
+        return self.lumber.framing_hardware(hardware_items)
+
+    def roof_trusses(
+            self,
+            building_length_feet,
+            truss_spacing_inches=24,
+            truss_spec="Roof Truss",
+            connection_quantity=0
+    ):
+        return self.lumber.roof_trusses(
+            building_length_feet,
+            truss_spacing_inches=truss_spacing_inches,
+            truss_spec=truss_spec,
+            connection_quantity=connection_quantity
+        )
+
+    def wall_framing_package(
+            self,
+            length_feet,
+            height_feet,
+            quantity=1,
+            stud_spacing_inches=None,
+            include_sheathing=True,
+            waste_percent=None
+    ):
+        return self.lumber.wall_framing_package(
+            length_feet,
+            height_feet,
+            quantity=quantity,
+            stud_spacing_inches=stud_spacing_inches,
+            include_sheathing=include_sheathing,
+            waste_percent=waste_percent
+        )
+
+    def stair_framing(
+            self,
+            stair_width_feet,
+            tread_count,
+            stringer_count,
+            stringer_spec="2x12 Stair Stringer",
+            tread_spec="Stair Tread",
+            riser_spec="Stair Riser"
+    ):
+        return self.lumber.stair_framing(
+            stair_width_feet,
+            tread_count,
+            stringer_count,
+            stringer_spec=stringer_spec,
+            tread_spec=tread_spec,
+            riser_spec=riser_spec
+        )
+
+    def deck_framing(
+            self,
+            length_feet,
+            projection_feet,
+            joist_spacing_inches=16,
+            post_count=0,
+            joist_spec="2x8 Deck Joists",
+            beam_spec="Plan-Specified Deck Beam"
+    ):
+        return self.lumber.deck_framing(
+            length_feet,
+            projection_feet,
+            joist_spacing_inches=joist_spacing_inches,
+            post_count=post_count,
+            joist_spec=joist_spec,
+            beam_spec=beam_spec
+        )
+
+    def garage_door_framing(
+            self,
+            opening_width_feet,
+            wall_height_feet,
+            quantity=1,
+            header_spec=None,
+            header_plies=None
+    ):
+        return self.lumber.garage_door_framing(
+            opening_width_feet,
+            wall_height_feet,
+            quantity=quantity,
+            header_spec=header_spec,
+            header_plies=header_plies
         )
 
     def ceiling_joists(

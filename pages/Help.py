@@ -124,6 +124,8 @@ with commands_tab:
         """
         - Type `cancel` to stop the current estimate.
         - Type `change to <estimate type>` to begin a different estimate.
+        - Update future default waste directly in Chat, for example:
+          `set concrete waste to 10%`.
         - Answer each question directly. For example, type `20`, then `8`
           when Eden asks for wall length and height.
         - Eden asks for missing dimensions rather than assuming them.
@@ -170,6 +172,12 @@ with estimating_tab:
         st.code(
             "estimate a framed wall\n"
             "estimate a framed wall with an opening\n"
+            "estimate a wall framing package\n"
+            "estimate roof trusses\n"
+            "estimate framing hardware\n"
+            "estimate stair framing\n"
+            "estimate deck framing\n"
+            "estimate garage door framing\n"
             "estimate roof sheathing\n"
             "estimate shingles\n"
             "estimate ceiling joists",

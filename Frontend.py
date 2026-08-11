@@ -61,6 +61,9 @@ def create_material_takeoff_csv(project_name, material_takeoff):
         "Item",
         "Unit",
         "Quantity",
+        "Base Depth (in)",
+        "Cubic Yards",
+        "Estimated Tons",
         "Category",
         "Notes"
     ]
@@ -74,6 +77,12 @@ def create_material_takeoff_csv(project_name, material_takeoff):
                 "Item": item.get("item", ""),
                 "Unit": item.get("unit", ""),
                 "Quantity": item.get("quantity", ""),
+                "Base Depth (in)": item.get(
+                    "base_depth_inches",
+                    ""
+                ),
+                "Cubic Yards": item.get("cubic_yards", ""),
+                "Estimated Tons": item.get("estimated_tons", ""),
                 "Category": item.get("category", "Material"),
                 "Notes": item.get("notes", "")
             }
@@ -338,30 +347,6 @@ if not selected_project_region:
 if selected_project_region not in pricing_regions and pricing_regions:
     selected_project_region = pricing_regions[0]
 
-project_suppliers = pricing.list_suppliers(selected_project_region)
-selected_project_supplier = project_details.get(
-    "pricing_supplier",
-    ""
-)
-
-if not selected_project_supplier:
-    selected_project_supplier = profile.get(
-        "preferred_supplier",
-        ""
-    )
-
-if (
-        selected_project_supplier
-        and selected_project_supplier not in project_suppliers
-):
-    project_suppliers = [
-        selected_project_supplier,
-        *project_suppliers
-    ]
-
-if not selected_project_supplier and project_suppliers:
-    selected_project_supplier = project_suppliers[0]
-
 with st.expander(
     "Customer and Project Details",
     expanded=not project_details["customer_name"]
@@ -399,25 +384,6 @@ with st.expander(
                 "this project."
             )
 
-        if project_suppliers:
-            project_supplier = st.selectbox(
-                "Preferred material supplier",
-                project_suppliers,
-                index=project_suppliers.index(
-                    selected_project_supplier
-                ),
-                help=(
-                    "Eden uses this supplier's saved prices for the "
-                    "project cost preview."
-                )
-            )
-        else:
-            project_supplier = ""
-            st.info(
-                "Add a material price with a supplier in Settings "
-                "before pricing this project."
-            )
-
         proposal_title = st.text_input(
             "Proposal title",
             value=project_details["proposal_title"]
@@ -444,11 +410,6 @@ with st.expander(
                 "customer_email": customer_email,
                 "project_address": project_address,
                 "pricing_region": project_region,
-                "pricing_supplier": project_supplier,
-                "material_suppliers": project_details.get(
-                    "material_suppliers",
-                    {}
-                ),
                 "proposal_title": proposal_title,
                 "proposal_notes": proposal_notes
             }
@@ -913,45 +874,18 @@ if material_takeoff:
         project_details.get("pricing_region", "") or
         profile.get("default_region", "")
     )
-    project_pricing_supplier = (
-        project_details.get("pricing_supplier", "") or
-        profile.get("preferred_supplier", "")
-    )
-    material_supplier_overrides = project_details.get(
-        "material_suppliers",
-        {}
-    )
-
     if project_pricing_region:
         priced_takeoff = pricing.price_material_takeoff(
             material_takeoff,
-            project_pricing_region,
-            project_pricing_supplier or None,
-            material_supplier_overrides
+            project_pricing_region
         )
 
         st.subheader("Project Material Cost Preview")
         st.caption(
-            "Eden uses a saved supplier price first. When one is not "
-            "available, it uses the average of saved prices for that "
-            "material in the selected region and labels it as an estimate."
+            f"Using saved prices in {priced_takeoff['pricing_region']}. "
+            "When more than one supplier price exists, Eden uses the "
+            "saved regional average and labels it as an estimate."
         )
-        if material_supplier_overrides:
-            st.caption(
-                "Using material-specific supplier selections where saved, "
-                f"with {project_pricing_supplier or 'available'} prices "
-                f"as the default in {priced_takeoff['pricing_region']}."
-            )
-        elif project_pricing_supplier:
-            st.caption(
-                f"Using {priced_takeoff['pricing_supplier']} prices in "
-                f"{priced_takeoff['pricing_region']}."
-            )
-        else:
-            st.caption(
-                "Using saved prices where only one supplier price is "
-                f"available in {priced_takeoff['pricing_region']}."
-            )
 
         cost_column, missing_price_column = st.columns(2)
 
@@ -1004,63 +938,18 @@ if material_takeoff:
             hide_index=True
         )
 
-        with st.expander("Choose Suppliers by Material"):
-            st.caption(
-                "Choose a supplier only when that material should come "
-                "from somewhere other than the project default. Eden only "
-                "shows suppliers with an exact saved price for each item."
-            )
-
-            with st.form("material_supplier_overrides_form"):
-                updated_overrides = {}
-
-                for number, item in enumerate(material_takeoff):
-                    material_key = pricing._make_material_key(
-                        item["item"],
-                        item["unit"]
-                    )
-                    item_suppliers = pricing.list_material_suppliers(
-                        item["item"],
-                        item["unit"],
-                        project_pricing_region
-                    )
-                    choices = ["Use project default", *item_suppliers]
-                    saved_supplier = material_supplier_overrides.get(
-                        material_key,
-                        "Use project default"
-                    )
-
-                    if saved_supplier not in choices:
-                        saved_supplier = "Use project default"
-
-                    choice = st.selectbox(
-                        f"{item['item']} ({item['unit']})",
-                        choices,
-                        index=choices.index(saved_supplier),
-                        key=f"material_supplier_{number}"
-                    )
-
-                    if choice != "Use project default":
-                        updated_overrides[material_key] = choice
-
-                save_supplier_overrides = st.form_submit_button(
-                    "Save Material Supplier Choices"
-                )
-
-            if save_supplier_overrides:
-                projects.update_active_project_details(
-                    {
-                        **project_details,
-                        "material_suppliers": updated_overrides
-                    }
-                )
-                st.success("Material supplier choices saved.")
-                st.rerun()
-
         if priced_takeoff["unpriced_items"]:
             st.warning(
-                "This total excludes materials that have neither a saved "
-                "supplier price nor an Eden regional average."
+                "This total excludes items without a saved price. Add or "
+                "update their material prices in Settings > Regional Pricing, "
+                "then return here to review the updated bid."
+            )
+
+        if False and priced_takeoff["unpriced_items"]:
+            st.warning(
+                "This total excludes items without a saved price. Add or "
+                "update their material prices in Settings > Regional Pricing, "
+                "then return here to review the updated bid."
             )
 
             with st.expander(
@@ -1130,7 +1019,7 @@ if material_takeoff:
                         st.success("Missing material prices saved.")
                         st.rerun()
 
-        with st.expander("Add Any Supplier Material Price"):
+        if False:
             st.caption(
                 "Save a price for any material now. Eden will use it when "
                 "a future takeoff has the same material name and unit."

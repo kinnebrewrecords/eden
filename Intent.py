@@ -1,17 +1,34 @@
+import re
 from typing import Dict, Optional
 
 class IntentDetector:
 
+    def _normalize_command(self, command):
+        command = command.lower().strip()
+        command = command.replace("&", " and ")
+        command = re.sub(r"[^a-z0-9#./\-\s]", " ", command)
+        return " ".join(command.split())
+
+    def _contains_phrase(self, command, phrase):
+        pattern = rf"(?<!\w){re.escape(phrase)}(?!\w)"
+        return re.search(pattern, command) is not None
+
+    def _contains_any(self, command, phrases):
+        return any(
+            self._contains_phrase(command, phrase)
+            for phrase in phrases
+        )
+
     def detect(self, command):
 
-        command = command.lower()
+        command = self._normalize_command(command)
 
         intent: Dict[str, Optional[str]] = {
             "action": None,
             "category": None,
             "type": None
         }
-        if any(word in command for word in [
+        if self._contains_any(command, [
             "estimate",
             "calculate",
             "figure",
@@ -41,10 +58,47 @@ class IntentDetector:
             "driveway", "steps", "column", "ramp", "beam",
             "pad", "pier", "curb", "patio", "slab"
         ]
+
+        concrete_aliases = {
+            "aggregate base": "aggregate base",
+            "gravel base": "aggregate base",
+            "crusher run": "aggregate base",
+            "crushed stone": "aggregate base",
+            "#57 stone": "aggregate base",
+            "concrete flatwork": "custom flatwork",
+            "irregular flatwork": "custom flatwork",
+            "radius slab": "custom flatwork",
+            "rounded slab": "custom flatwork",
+            "continuous footings": "footing system",
+            "foundation footings": "footing system",
+            "footings": "footing system"
+        }
         #### LUMBER ####
 
         lumber_aliases = {
+            "framing hardware": "framing hardware",
+            "hardware package": "framing hardware",
+            "joist hangers": "framing hardware",
+            "hurricane ties": "framing hardware",
+            "roof trusses": "roof trusses",
+            "roof truss": "roof trusses",
+            "trusses": "roof trusses",
+            "truss": "roof trusses",
+            "wall framing package": "wall framing package",
+            "framing package": "wall framing package",
+            "stair framing": "stair framing",
+            "stairs": "stair framing",
+            "deck framing": "deck framing",
+            "garage door framing": "garage door framing",
+            "garage door header": "garage door framing",
             "framed wall with an opening": "framed wall with openings",
+            "framed wall with a door": "framed wall with openings",
+            "framed wall with a window": "framed wall with openings",
+            "framed wall with doors": "framed wall with openings",
+            "framed wall with windows": "framed wall with openings",
+            "wall with a door": "framed wall with openings",
+            "wall with a window": "framed wall with openings",
+            "wall opening": "framed wall with openings",
             "framed wall with opening": "framed wall with openings",
             "wall with opening": "framed wall with openings",
             "framed wall with openings": "framed wall with openings",
@@ -114,26 +168,25 @@ class IntentDetector:
     #### ROOFING ####
 
 
-        roofing_terms = [
-                "shingles",
-                "roof shingles",
-                "asphalt shingles",
-                "underlayment",
-                "roof underlayment",
-                "synthetic underlayment",
-                "drip edge",
-                "drip edges",
-                "roof edge",
-                "ice barrier",
-                "ice and water shield",
-                "ice water shield",
-                "ice shield",
-                "ridge vent",
-                "roof vent",
-                "vent",
-                "flashing",
-                "roof flashing"
-            ]
+        roofing_aliases = {
+            "asphalt shingles": "shingles",
+            "roof shingles": "shingles",
+            "shingles": "shingles",
+            "synthetic underlayment": "underlayment",
+            "roof underlayment": "underlayment",
+            "underlayment": "underlayment",
+            "drip edges": "drip edge",
+            "drip edge": "drip edge",
+            "roof edge": "drip edge",
+            "ice and water shield": "ice water shield",
+            "ice water shield": "ice water shield",
+            "ice barrier": "ice water shield",
+            "ice shield": "ice water shield",
+            "ridge vent": "ridge vent",
+            "roof vent": "ridge vent",
+            "roof flashing": "flashing",
+            "flashing": "flashing"
+        }
 
 
     #### INSULATION ####
@@ -315,7 +368,7 @@ class IntentDetector:
             "window": "windows"
         }
 
-        if any(item in command for item in project_assemblies):
+        if self._contains_any(command, project_assemblies):
                 intent["category"] = "assembly"
 
                 for item in sorted(
@@ -323,11 +376,11 @@ class IntentDetector:
                     key=len,
                     reverse=True
                 ):
-                    if item in command:
+                    if self._contains_phrase(command, item):
                         intent["type"] = project_assemblies[item]
                         break
 
-        elif any(item in command for item in specialty_aliases):
+        elif self._contains_any(command, specialty_aliases):
                 intent["category"] = "specialty"
 
                 for item in sorted(
@@ -335,19 +388,31 @@ class IntentDetector:
                     key=len,
                     reverse=True
                 ):
-                    if item in command:
+                    if self._contains_phrase(command, item):
                         intent["type"] = specialty_aliases[item]
                         break
 
-        elif any(item in command for item in concrete_types):
+        elif self._contains_any(command, concrete_aliases):
                 intent["category"] = "concrete"
 
-                for item in concrete_types:
-                    if item in command:
+                for item in sorted(
+                    concrete_aliases,
+                    key=len,
+                    reverse=True
+                ):
+                    if self._contains_phrase(command, item):
+                        intent["type"] = concrete_aliases[item]
+                        break
+
+        elif self._contains_any(command, concrete_types):
+                intent["category"] = "concrete"
+
+                for item in sorted(concrete_types, key=len, reverse=True):
+                    if self._contains_phrase(command, item):
                         intent["type"] = item
                         break
 
-        elif any(item in command for item in lumber_aliases):
+        elif self._contains_any(command, lumber_aliases):
 
             intent["category"] = "lumber"
 
@@ -356,79 +421,82 @@ class IntentDetector:
                 key=len,
                 reverse=True
             ):
-                if item in command:
+                if self._contains_phrase(command, item):
                     intent["type"] = lumber_aliases[item]
                     break
 
-        elif any(item in command for item in roofing_terms):
+        elif self._contains_any(command, roofing_aliases):
 
                 intent["category"] = "roofing"
 
-                for item in roofing_terms:
-                    if item in command:
-                        intent["type"] = item
+                for item in sorted(
+                    roofing_aliases,
+                    key=len,
+                    reverse=True
+                ):
+                    if self._contains_phrase(command, item):
+                        intent["type"] = roofing_aliases[item]
                         break
 
-        elif any(item in command for item in insulation_types):
+        elif self._contains_any(command, insulation_types):
 
                 intent["category"] = "insulation"
 
-                for item in insulation_types:
-                    if item in command:
+                for item in sorted(insulation_types, key=len, reverse=True):
+                    if self._contains_phrase(command, item):
                         intent["type"] = insulation_type_map.get(
                             item,
                             item
                         )
                         break
 
-        elif any(item in command for item in drywall_finish_terms):
+        elif self._contains_any(command, drywall_finish_terms):
 
                 intent["category"] = "drywall finish"
 
-                for item in drywall_finish_terms:
-                    if item in command:
+                for item in sorted(drywall_finish_terms, key=len, reverse=True):
+                    if self._contains_phrase(command, item):
                         intent["type"] = item
                         break
 
-        elif any(item in command for item in drywall_terms):
+        elif self._contains_any(command, drywall_terms):
 
                 intent["category"] = "drywall"
 
-                for item in drywall_terms:
-                    if item in command:
+                for item in sorted(drywall_terms, key=len, reverse=True):
+                    if self._contains_phrase(command, item):
                         intent["type"] = item
                         break
 
-        elif any(item in command for item in electrical_types):
+        elif self._contains_any(command, electrical_types):
 
                 intent["category"] = "electrical"
 
-                for item in electrical_types:
-                    if item in command:
+                for item in sorted(electrical_types, key=len, reverse=True):
+                    if self._contains_phrase(command, item):
                         intent["type"] = item
                         break
 
-        elif any(item in command for item in plumbing_types):
+        elif self._contains_any(command, plumbing_types):
 
                 intent["category"] = "plumbing"
 
-                for item in plumbing_types:
-                    if item in command:
+                for item in sorted(plumbing_types, key=len, reverse=True):
+                    if self._contains_phrase(command, item):
                         intent["type"] = item
                         break
 
-        elif any(item in command for item in hvac_types):
+        elif self._contains_any(command, hvac_types):
 
             intent["category"] = "hvac"
 
-            for item in hvac_types:
-                if item in command:
+            for item in sorted(hvac_types, key=len, reverse=True):
+                if self._contains_phrase(command, item):
                     intent["type"] = item
                     break
 
-
-
-            return intent
+        if intent["category"] and intent["action"] is None:
+            intent["action"] = "estimate"
 
         return intent
 

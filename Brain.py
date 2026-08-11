@@ -1,3 +1,5 @@
+import re
+
 from Intent import IntentDetector
 
 
@@ -9,6 +11,34 @@ class Brain:
 
 
     def think(self,command):
+        normalized_command = command.lower().strip()
+
+        waste_match = re.search(
+            r"(?:set|change|update)\s+"
+            r"(?:(concrete|lumber|framing|roofing|drywall|insulation)\s+)?"
+            r"(?:the\s+)?waste(?:\s+(?:allowance|default))?\s+"
+            r"(?:to|at)\s+(\d+(?:\.\d+)?)\s*%?",
+            normalized_command
+        )
+
+        if waste_match:
+            trade = waste_match.group(1) or self.memory.recall(
+                "last category"
+            )
+            return self.commands.update_waste_default(
+                trade,
+                waste_match.group(2)
+            )
+
+        if normalized_command in [
+                "what can you do",
+                "what can eden do",
+                "what can you estimate",
+                "what do you estimate",
+                "show estimate types"
+        ]:
+            return self.commands.help_command(command)
+
         if command=="what is my job":
             return self.memory.recall("job")
         if command in ["hello",

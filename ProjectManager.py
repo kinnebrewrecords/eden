@@ -994,6 +994,7 @@ class ProjectManager:
             return []
 
         totals = {}
+        aggregate_details = {}
 
         for estimate in project.get("estimates", []):
             for item in estimate.get("material_takeoff", []):
@@ -1007,19 +1008,55 @@ class ProjectManager:
                 key = (name, unit)
                 totals[key] = totals.get(key, 0) + quantity
 
+                if item.get("estimated_tons") is not None:
+                    details = aggregate_details.setdefault(
+                        key,
+                        {
+                            "cubic_yards": 0.0,
+                            "estimated_tons": 0.0,
+                            "base_depth_inches": item.get(
+                                "base_depth_inches"
+                            )
+                        }
+                    )
+                    details["cubic_yards"] += float(
+                        item.get("cubic_yards", 0.0) or 0.0
+                    )
+                    details["estimated_tons"] += float(
+                        item.get("estimated_tons", 0.0) or 0.0
+                    )
+
         takeoff = []
 
         for (name, unit), quantity in sorted(totals.items()):
             if isinstance(quantity, float):
                 quantity = round(quantity, 2)
 
-            takeoff.append(
-                {
-                    "item": name,
-                    "unit": unit,
-                    "quantity": quantity
-                }
-            )
+            takeoff_item = {
+                "item": name,
+                "unit": unit,
+                "quantity": quantity
+            }
+
+            if (name, unit) in aggregate_details:
+                details = aggregate_details[(name, unit)]
+                takeoff_item.update(
+                    {
+                        "base_depth_inches": details[
+                            "base_depth_inches"
+                        ],
+                        "cubic_yards": round(
+                            details["cubic_yards"],
+                            2
+                        ),
+                        "estimated_tons": round(
+                            details["estimated_tons"],
+                            2
+                        )
+                    }
+                )
+
+            takeoff.append(takeoff_item)
 
         # Keep custom items as individual lines. This lets a project-only
         # price stay separate from a catalog price for the same material.

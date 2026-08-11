@@ -1590,6 +1590,285 @@ class LumberEstimator:
     # WALL SYSTEM
     # =========================
 
+    def framing_hardware(self, hardware_items):
+        """Take off exact hardware quantities from an approved plan."""
+        material_takeoff = []
+
+        for item in hardware_items:
+            name = str(item.get("item", "")).strip()
+            quantity = int(item.get("quantity", 0) or 0)
+
+            if name and quantity > 0:
+                material_takeoff.append(
+                    {
+                        "item": name,
+                        "unit": "EA",
+                        "quantity": quantity
+                    }
+                )
+
+        return {
+            "type": "Framing Hardware Package",
+            "material": "Plan-Specified Framing Hardware",
+            "details": {
+                "Hardware line items": len(material_takeoff)
+            },
+            "waste_percent": 0,
+            "material_takeoff": material_takeoff,
+            "note": (
+                "Connection type, fastener count, and manufacturer "
+                "requirements must follow the approved plans."
+            )
+        }
+
+    def roof_trusses(
+            self,
+            building_length_feet,
+            truss_spacing_inches=24,
+            truss_spec="Roof Truss",
+            connection_quantity=0
+    ):
+        spacing_feet = float(truss_spacing_inches) / 12
+        truss_count = math.ceil(building_length_feet / spacing_feet) + 1
+        material_takeoff = [
+            {
+                "item": truss_spec,
+                "unit": "EA",
+                "quantity": truss_count
+            }
+        ]
+
+        if connection_quantity > 0:
+            material_takeoff.append(
+                {
+                    "item": "Plan-Specified Truss Connections",
+                    "unit": "EA",
+                    "quantity": int(connection_quantity)
+                }
+            )
+
+        return {
+            "type": "Roof Truss Package",
+            "material": truss_spec,
+            "details": {
+                "Building length": f"{building_length_feet} ft",
+                "Truss spacing": f"{truss_spacing_inches} in OC",
+                "Truss count": truss_count
+            },
+            "waste_percent": 0,
+            "material_takeoff": material_takeoff,
+            "note": (
+                "Truss profile, span, bearing locations, bracing, and "
+                "connections must match the sealed truss package."
+            )
+        }
+
+    def wall_framing_package(
+            self,
+            length_feet,
+            height_feet,
+            quantity=1,
+            stud_spacing_inches=None,
+            include_sheathing=True,
+            waste_percent=None
+    ):
+        wall = self.frame_wall(
+            length_feet=length_feet,
+            height_feet=height_feet,
+            quantity=quantity,
+            stud_spacing_inches=stud_spacing_inches,
+            waste_percent=waste_percent
+        )
+        material_takeoff = list(wall["material_takeoff"])
+
+        if include_sheathing:
+            sheathing = self.wall_sheathing(
+                length_feet,
+                height_feet,
+                waste_percent=wall["waste_percent"]
+            )
+            sheets = sheathing["material"]["quantity"] * quantity
+            material_takeoff.append(
+                {
+                    "item": "4x8 7/16 OSB Wall Sheathing",
+                    "unit": "SHEETS",
+                    "quantity": sheets
+                }
+            )
+
+        return {
+            "type": "Wall Framing Package",
+            "material": "2x4 SPF Wall Framing",
+            "details": {
+                "Wall size": f"{length_feet} ft x {height_feet} ft",
+                "Identical walls": quantity,
+                "Stud spacing": f"{wall['stud_spacing_inches']} in OC",
+                "Wall sheathing": "Included" if include_sheathing else "Not included"
+            },
+            "waste_percent": wall["waste_percent"],
+            "material_takeoff": material_takeoff,
+            "note": (
+                "This package covers field framing and optional wall "
+                "sheathing. Add openings, headers, hold-downs, and hardware "
+                "from approved plans as needed."
+            )
+        }
+
+    def stair_framing(
+            self,
+            stair_width_feet,
+            tread_count,
+            stringer_count,
+            stringer_spec="2x12 Stair Stringer",
+            tread_spec="Stair Tread",
+            riser_spec="Stair Riser"
+    ):
+        return {
+            "type": "Stair Framing",
+            "material": stringer_spec,
+            "details": {
+                "Stair width": f"{stair_width_feet} ft",
+                "Treads": tread_count,
+                "Stringers": stringer_count
+            },
+            "waste_percent": 0,
+            "material_takeoff": [
+                {
+                    "item": stringer_spec,
+                    "unit": "EA",
+                    "quantity": int(stringer_count)
+                },
+                {
+                    "item": tread_spec,
+                    "unit": "EA",
+                    "quantity": int(tread_count)
+                },
+                {
+                    "item": riser_spec,
+                    "unit": "EA",
+                    "quantity": int(tread_count)
+                }
+            ],
+            "note": (
+                "Stringer layout, rise/run, landing framing, guard, and "
+                "handrail requirements must follow approved plans and code."
+            )
+        }
+
+    def deck_framing(
+            self,
+            length_feet,
+            projection_feet,
+            joist_spacing_inches=16,
+            post_count=0,
+            joist_spec="2x8 Deck Joists",
+            beam_spec="Plan-Specified Deck Beam"
+    ):
+        joist_count = math.ceil(
+            length_feet / (float(joist_spacing_inches) / 12)
+        ) + 1
+        stock_length = self._get_lumber_stock_length_feet(None)
+        ledger_boards = math.ceil(length_feet / stock_length)
+
+        material_takeoff = [
+            {
+                "item": f"{joist_spec} x {projection_feet} ft",
+                "unit": "EA",
+                "quantity": joist_count
+            },
+            {
+                "item": f"2x Ledger Board ({stock_length} ft)",
+                "unit": "EA",
+                "quantity": ledger_boards
+            },
+            {
+                "item": beam_spec,
+                "unit": "LF",
+                "quantity": round(float(length_feet), 2)
+            }
+        ]
+
+        if post_count > 0:
+            material_takeoff.extend([
+                {
+                    "item": "Plan-Specified Deck Posts",
+                    "unit": "EA",
+                    "quantity": int(post_count)
+                },
+                {
+                    "item": "Plan-Specified Post Bases",
+                    "unit": "EA",
+                    "quantity": int(post_count)
+                }
+            ])
+
+        return {
+            "type": "Deck Framing",
+            "material": joist_spec,
+            "details": {
+                "Deck size": f"{length_feet} ft x {projection_feet} ft",
+                "Joist spacing": f"{joist_spacing_inches} in OC",
+                "Joists": joist_count,
+                "Posts": int(post_count)
+            },
+            "waste_percent": 0,
+            "material_takeoff": material_takeoff,
+            "note": (
+                "Deck board coverage is estimated separately. Beam size, post "
+                "locations, footings, ledger fastening, and hardware must "
+                "follow approved plans and local requirements."
+            )
+        }
+
+    def garage_door_framing(
+            self,
+            opening_width_feet,
+            wall_height_feet,
+            quantity=1,
+            header_spec=None,
+            header_plies=None
+    ):
+        stud_length = 8 if wall_height_feet <= 8 else 10
+        stud_quantity = int(quantity) * 4
+        material_takeoff = [
+            {
+                "item": f"2x4 x {stud_length} ft Garage Opening Studs",
+                "unit": "EA",
+                "quantity": stud_quantity
+            }
+        ]
+
+        if header_spec and header_plies:
+            material_takeoff.append(
+                {
+                    "item": (
+                        f"Header Material ({header_plies} ply {header_spec})"
+                    ),
+                    "unit": "LF",
+                    "quantity": round(
+                        float(opening_width_feet) * int(header_plies) * quantity,
+                        2
+                    )
+                }
+            )
+
+        return {
+            "type": "Garage Door Framing",
+            "material": "Garage Door Opening Framing",
+            "details": {
+                "Opening width": f"{opening_width_feet} ft",
+                "Wall height": f"{wall_height_feet} ft",
+                "Openings": quantity,
+                "Header": header_spec or "Plan required"
+            },
+            "waste_percent": 0,
+            "material_takeoff": material_takeoff,
+            "note": (
+                "Header size, plies, bearing, cripple framing, and connection "
+                "details must follow approved structural plans."
+            )
+        }
+
 
 
 

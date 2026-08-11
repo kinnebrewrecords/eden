@@ -29,6 +29,112 @@ class ConcreteEstimator:
             "gravel_base_depth_inches"
         )
 
+    def _get_aggregate_base_material(self, material=None):
+        if material:
+            return str(material).strip()
+
+        return EstimatingPreferences().get(
+            "aggregate_base_material"
+        )
+
+    def _get_aggregate_base_tons_per_cubic_yard(
+            self,
+            tons_per_cubic_yard=None
+    ):
+        if tons_per_cubic_yard is not None:
+            return float(tons_per_cubic_yard)
+
+        return float(EstimatingPreferences().get(
+            "aggregate_base_tons_per_cubic_yard"
+        ))
+
+    def _get_aggregate_base_purchase_unit(self, purchase_unit=None):
+        if purchase_unit:
+            return str(purchase_unit).strip().upper()
+
+        return str(EstimatingPreferences().get(
+            "aggregate_base_purchase_unit"
+        )).upper()
+
+    def _aggregate_base_takeoff(
+            self,
+            area_sqft,
+            depth_inches=None,
+            waste_percent=None,
+            material=None,
+            tons_per_cubic_yard=None,
+            purchase_unit=None
+    ):
+        """Return one priced takeoff line plus both volume measurements."""
+        depth_inches = self._get_gravel_base_depth_inches(depth_inches)
+        material = self._get_aggregate_base_material(material)
+        tons_per_cubic_yard = (
+            self._get_aggregate_base_tons_per_cubic_yard(
+                tons_per_cubic_yard
+            )
+        )
+        purchase_unit = self._get_aggregate_base_purchase_unit(
+            purchase_unit
+        )
+        waste_percent = self._get_concrete_waste_percent(waste_percent)
+
+        cubic_yards = (
+            float(area_sqft) * (float(depth_inches) / 12) / 27 *
+            (1 + float(waste_percent) / 100)
+        )
+        estimated_tons = cubic_yards * tons_per_cubic_yard
+
+        if purchase_unit not in ["CY", "TONS"]:
+            purchase_unit = "CY"
+
+        purchase_quantity = (
+            estimated_tons
+            if purchase_unit == "TONS"
+            else cubic_yards
+        )
+
+        return {
+            "item": material,
+            "unit": purchase_unit,
+            "quantity": round(purchase_quantity, 2),
+            "base_depth_inches": round(float(depth_inches), 2),
+            "cubic_yards": round(cubic_yards, 2),
+            "estimated_tons": round(estimated_tons, 2)
+        }
+
+    def aggregate_base(
+            self,
+            area_sqft,
+            depth_inches=None,
+            material=None,
+            tons_per_cubic_yard=None,
+            purchase_unit=None,
+            waste_percent=None
+    ):
+        takeoff = self._aggregate_base_takeoff(
+            area_sqft=area_sqft,
+            depth_inches=depth_inches,
+            material=material,
+            tons_per_cubic_yard=tons_per_cubic_yard,
+            purchase_unit=purchase_unit,
+            waste_percent=waste_percent
+        )
+
+        return {
+            "type": "Aggregate Base",
+            "area_sqft": round(float(area_sqft), 2),
+            "material": takeoff["item"],
+            "base_depth_inches": takeoff["base_depth_inches"],
+            "cubic_yards": takeoff["cubic_yards"],
+            "estimated_tons": takeoff["estimated_tons"],
+            "purchase_unit": takeoff["unit"],
+            "order_quantity": takeoff["quantity"],
+            "waste_percent": self._get_concrete_waste_percent(
+                waste_percent
+            ),
+            "material_takeoff": [takeoff]
+        }
+
     def _get_form_board_length_feet(
             self,
             length_feet=None
@@ -212,22 +318,12 @@ class ConcreteEstimator:
             )
 
         if gravel_base:
-            gravel_cubic_yards = (
-                    footing_area_sqft *
-                    (gravel_depth_inches / 12) /
-                    27 *
-                    waste_multiplier
-            )
-
             material_takeoff.append(
-                {
-                    "item": (
-                        f"Compacted Aggregate Base "
-                        f"({gravel_depth_inches} in depth)"
-                    ),
-                    "unit": "CY",
-                    "quantity": round(gravel_cubic_yards, 2)
-                }
+                self._aggregate_base_takeoff(
+                    footing_area_sqft,
+                    depth_inches=gravel_depth_inches,
+                    waste_percent=waste_percent
+                )
             )
 
         if rebar and rebar.get("status") == "specified":
@@ -353,20 +449,12 @@ class ConcreteEstimator:
             )
 
         if gravel_base:
-            gravel_cubic_yards = (
-                total_footprint_sqft *
-                (gravel_depth_inches / 12) / 27 *
-                waste_multiplier
-            )
             material_takeoff.append(
-                {
-                    "item": (
-                        "Compacted Aggregate Base "
-                        f"({gravel_depth_inches} in depth)"
-                    ),
-                    "unit": "CY",
-                    "quantity": round(gravel_cubic_yards, 2)
-                }
+                self._aggregate_base_takeoff(
+                    total_footprint_sqft,
+                    depth_inches=gravel_depth_inches,
+                    waste_percent=waste_percent
+                )
             )
 
         if rebar and rebar.get("status") == "specified":
@@ -679,22 +767,12 @@ class ConcreteEstimator:
             )
 
         if gravel_base:
-            gravel_cubic_yards = (
-                    total_footprint_sqft *
-                    (gravel_depth_inches / 12) /
-                    27 *
-                    waste_multiplier
-            )
-
             material_takeoff.append(
-                {
-                    "item": (
-                        f"Compacted Aggregate Base "
-                        f"({gravel_depth_inches} in depth)"
-                    ),
-                    "unit": "CY",
-                    "quantity": round(gravel_cubic_yards, 2)
-                }
+                self._aggregate_base_takeoff(
+                    total_footprint_sqft,
+                    depth_inches=gravel_depth_inches,
+                    waste_percent=waste_percent
+                )
             )
 
         if rebar and rebar.get("status") == "specified":
@@ -932,22 +1010,11 @@ class ConcreteEstimator:
             )
 
         if gravel_base:
-            gravel_cubic_yards = (
-                curb_footprint_sqft *
-                (Settings.GRAVEL_BASE_DEPTH_INCHES / 12) /
-                27 *
-                waste_multiplier
-            )
-
             material_takeoff.append(
-                {
-                    "item": (
-                        f"Compacted Aggregate Base "
-                        f"({Settings.GRAVEL_BASE_DEPTH_INCHES} in depth)"
-                    ),
-                    "unit": "CY",
-                    "quantity": round(gravel_cubic_yards, 2)
-                }
+                self._aggregate_base_takeoff(
+                    curb_footprint_sqft,
+                    waste_percent=waste_percent
+                )
             )
 
         if rebar and rebar.get("status") == "specified":
@@ -1320,22 +1387,11 @@ class ConcreteEstimator:
         ]
 
         if gravel_base:
-            gravel_cubic_yards = (
-                footprint_sqft *
-                (Settings.GRAVEL_BASE_DEPTH_INCHES / 12) /
-                27 *
-                waste_multiplier
-            )
-
             material_takeoff.append(
-                {
-                    "item": (
-                        f"Compacted Aggregate Base "
-                        f"({Settings.GRAVEL_BASE_DEPTH_INCHES} in depth)"
-                    ),
-                    "unit": "CY",
-                    "quantity": round(gravel_cubic_yards, 2)
-                }
+                self._aggregate_base_takeoff(
+                    footprint_sqft,
+                    waste_percent=waste_percent
+                )
             )
 
         if vapor_barrier:
@@ -1584,22 +1640,11 @@ class ConcreteEstimator:
         ]
 
         if gravel_base:
-            gravel_cubic_yards = (
-                ramp_footprint_sqft *
-                (Settings.GRAVEL_BASE_DEPTH_INCHES / 12) /
-                27 *
-                waste_multiplier
-            )
-
             material_takeoff.append(
-                {
-                    "item": (
-                        f"Compacted Aggregate Base "
-                        f"({Settings.GRAVEL_BASE_DEPTH_INCHES} in depth)"
-                    ),
-                    "unit": "CY",
-                    "quantity": round(gravel_cubic_yards, 2)
-                }
+                self._aggregate_base_takeoff(
+                    ramp_footprint_sqft,
+                    waste_percent=waste_percent
+                )
             )
 
         if forms:
@@ -2365,22 +2410,12 @@ class ConcreteEstimator:
             )
 
         if gravel_base:
-            gravel_cubic_yards = (
-                    area_sqft *
-                    (gravel_depth_inches / 12) /
-                    27 *
-                    waste_multiplier
-            )
-
             material_takeoff.append(
-                {
-                    "item": (
-                        f"Compacted Aggregate Base "
-                        f"({gravel_depth_inches} in depth)"
-                    ),
-                    "unit": "CY",
-                    "quantity": round(gravel_cubic_yards, 2)
-                }
+                self._aggregate_base_takeoff(
+                    area_sqft,
+                    depth_inches=gravel_depth_inches,
+                    waste_percent=waste_percent
+                )
             )
 
         if forms:
@@ -2502,22 +2537,12 @@ class ConcreteEstimator:
             )
 
         if gravel_base:
-            gravel_cubic_yards = (
-                    area_sqft *
-                    (gravel_depth_inches / 12) /
-                    27 *
-                    waste_multiplier
-            )
-
             material_takeoff.append(
-                {
-                    "item": (
-                        f"Compacted Aggregate Base "
-                        f"({gravel_depth_inches} in depth)"
-                    ),
-                    "unit": "CY",
-                    "quantity": round(gravel_cubic_yards, 2)
-                }
+                self._aggregate_base_takeoff(
+                    area_sqft,
+                    depth_inches=gravel_depth_inches,
+                    waste_percent=waste_percent
+                )
             )
 
         if forms:
