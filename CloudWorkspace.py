@@ -82,6 +82,15 @@ def auto_backup_if_needed():
     if store is None:
         return "offline"
 
+    # A backup is allowed only after this account's workspace has been
+    # loaded successfully. This prevents an empty local folder from
+    # overwriting a returning user's cloud workspace after a load failure.
+    if (
+            st.session_state.get("eden_workspace_loaded_for_user")
+            != session["user_id"]
+    ):
+        return "not_loaded"
+
     workspace = export_local_workspace()
     encoded_files = json.dumps(
         workspace["files"],

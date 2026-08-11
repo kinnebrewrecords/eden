@@ -66,10 +66,16 @@ def require_eden_login():
 
         try:
             activate_workspace_for_current_user()
-        except Exception:
-            # A temporary cloud problem must not prevent a signed-in user
-            # from reaching their already-loaded local workspace.
-            pass
+        except Exception as error:
+            # Never continue into Eden with an unknown workspace state.
+            # Doing so could allow an empty local workspace to overwrite a
+            # returning user's cloud projects during automatic backup.
+            st.error(
+                "Eden could not safely load your workspace. Your data was "
+                "not changed. Please refresh and try again."
+            )
+            st.caption(f"Workspace-load detail: {error}")
+            st.stop()
         return
 
     st.markdown(
