@@ -2772,6 +2772,51 @@ class Estimator:
             "Subfloor sheathing": subfloor
         }
 
+        if include_blocking:
+            components["Joist blocking"] = self.lumber.blocking(
+                width_feet,
+                stud_spacing_inches=joist_spec["spacing_inches"],
+                rows=blocking_rows,
+                waste_percent=joists["waste_percent"],
+                material_size=joist_spec["size"]
+            )
+
+        return {
+            "type": "Residential Floor System Assembly",
+            "dimensions": {
+                "length": length_feet,
+                "width": width_feet
+            },
+            "floor_area_sqft": round(length_feet * width_feet, 2),
+            "joist_spec": joist_spec,
+            "rim_spec": rim_spec,
+            "include_blocking": include_blocking,
+            "blocking_rows": blocking_rows if include_blocking else 0,
+            "waste_percent": joists["waste_percent"],
+            "component_estimates": components,
+            "material_takeoff": self._combine_material_takeoffs(
+                *[
+                    component["material_takeoff"]
+                    for component in components.values()
+                ]
+            ),
+            "assumptions": [
+                "Joist size, member length, and spacing come from the approved framing plan.",
+                "Rim material and stock length come from the approved framing plan.",
+                "Subfloor uses 4x8 3/4 in T&G OSB coverage with the selected waste allowance."
+            ],
+            "exclusions": [
+                "Beams, girders, posts, hangers, straps, adhesives, fasteners, and bridging unless separately estimated",
+                "Bearing verification, point loads, openings, stair framing, and structural design",
+                "Labor, permits, inspections, and local code review"
+            ],
+            "scope_note": (
+                "Do not use this assembly to select structural members. "
+                "Joist layout, rim detail, blocking, beams, connections, "
+                "and openings must match approved framing plans."
+            )
+        }
+
     def interior_finish_assembly(
             self,
             net_wall_area_sqft,
@@ -2899,51 +2944,6 @@ class Estimator:
                 "Verify room-by-room areas, ceiling heights, wet-area "
                 "materials, door schedule, finish selections, and product "
                 "coverage before ordering."
-            )
-        }
-
-        if include_blocking:
-            components["Joist blocking"] = self.lumber.blocking(
-                width_feet,
-                stud_spacing_inches=joist_spec["spacing_inches"],
-                rows=blocking_rows,
-                waste_percent=joists["waste_percent"],
-                material_size=joist_spec["size"]
-            )
-
-        return {
-            "type": "Residential Floor System Assembly",
-            "dimensions": {
-                "length": length_feet,
-                "width": width_feet
-            },
-            "floor_area_sqft": round(length_feet * width_feet, 2),
-            "joist_spec": joist_spec,
-            "rim_spec": rim_spec,
-            "include_blocking": include_blocking,
-            "blocking_rows": blocking_rows if include_blocking else 0,
-            "waste_percent": joists["waste_percent"],
-            "component_estimates": components,
-            "material_takeoff": self._combine_material_takeoffs(
-                *[
-                    component["material_takeoff"]
-                    for component in components.values()
-                ]
-            ),
-            "assumptions": [
-                "Joist size, member length, and spacing come from the approved framing plan.",
-                "Rim material and stock length come from the approved framing plan.",
-                "Subfloor uses 4x8 3/4 in T&G OSB coverage with the selected waste allowance."
-            ],
-            "exclusions": [
-                "Beams, girders, posts, hangers, straps, adhesives, fasteners, and bridging unless separately estimated",
-                "Bearing verification, point loads, openings, stair framing, and structural design",
-                "Labor, permits, inspections, and local code review"
-            ],
-            "scope_note": (
-                "Do not use this assembly to select structural members. "
-                "Joist layout, rim detail, blocking, beams, connections, "
-                "and openings must match approved framing plans."
             )
         }
 
