@@ -321,6 +321,7 @@ def create_floor_system_assembly_report(estimate):
         PLAN-CONFIRMED MEMBERS:
 
         Joists: {joist_spec['size']} x {joist_spec['member_length_feet']} ft
+        Joists span the floor {estimate['joist_span_direction']}
         Joist spacing: {joist_spec['spacing_inches']} in OC
         Rim: {rim_spec['size']} x {rim_spec['stock_length_feet']} ft stock
         Blocking: {'Included (' + str(estimate['blocking_rows']) + ' row(s))' if estimate['include_blocking'] else 'Not included'}

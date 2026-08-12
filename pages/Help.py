@@ -107,7 +107,8 @@ with getting_started_tab:
         1. Go to **Dashboard** and create a project in the sidebar.
         2. Open **Chat with Eden** and describe the work in normal language.
         3. Answer Eden's follow-up questions one at a time.
-        4. Eden saves the completed estimate to the active project.
+        4. Review the completed estimate and choose whether to save it to
+           the active project.
         5. Return to the Dashboard to review the combined material takeoff,
            pricing, bid, and reports.
         """

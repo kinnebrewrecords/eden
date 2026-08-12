@@ -211,6 +211,9 @@ if "eden_pending_command" not in st.session_state:
 if "eden_pending_answers" not in st.session_state:
     st.session_state.eden_pending_answers = []
 
+if "eden_pending_review" not in st.session_state:
+    st.session_state.eden_pending_review = None
+
 def add_message(role, content):
     st.session_state.eden_browser_messages.append(
         {
@@ -255,6 +258,23 @@ def handle_eden_result(command, answers):
             pass
 
     if result["kind"] == "question":
+        if result.get("is_estimate_review"):
+            st.session_state.eden_pending_command = None
+            st.session_state.eden_pending_answers = []
+            st.session_state.eden_pending_review = {
+                "command": command,
+                "answers": answers,
+                "prompts": result.get("answer_prompts", [])
+            }
+            st.session_state.pop("eden_review_editor", None)
+
+            add_message(
+                "assistant",
+                result["text"]
+            )
+            return
+
+        st.session_state.eden_pending_review = None
         st.session_state.eden_pending_command = result.get(
             "resume_command",
             command
@@ -269,6 +289,7 @@ def handle_eden_result(command, answers):
     elif result["kind"] == "complete":
         st.session_state.eden_pending_command = None
         st.session_state.eden_pending_answers = []
+        st.session_state.eden_pending_review = None
 
         add_message(
             "assistant",
@@ -278,6 +299,7 @@ def handle_eden_result(command, answers):
     elif result["kind"] == "change":
         st.session_state.eden_pending_command = None
         st.session_state.eden_pending_answers = []
+        st.session_state.eden_pending_review = None
 
         add_message(
             "assistant",
@@ -292,6 +314,7 @@ def handle_eden_result(command, answers):
     else:
         st.session_state.eden_pending_command = None
         st.session_state.eden_pending_answers = []
+        st.session_state.eden_pending_review = None
 
         add_message(
             "assistant",
@@ -311,6 +334,7 @@ if st.button("Clear Chat"):
 
     st.session_state.eden_pending_command = None
     st.session_state.eden_pending_answers = []
+    st.session_state.eden_pending_review = None
 
     st.rerun()
 
@@ -338,6 +362,73 @@ for message in st.session_state.eden_browser_messages:
             f'</div>',
             unsafe_allow_html=True
         )
+
+
+review = st.session_state.eden_pending_review
+
+if review:
+    st.markdown("### Review estimate details")
+    st.caption(
+        "Change any entered value below, then recalculate the preview. "
+        "Eden will use the revised values for the final saved estimate."
+    )
+
+    review_rows = [
+        {
+            "Detail": prompt.rstrip(": "),
+            "Value": answer
+        }
+        for prompt, answer in zip(
+            review["prompts"],
+            review["answers"]
+        )
+    ]
+
+    edited_rows = st.data_editor(
+        review_rows,
+        disabled=["Detail"],
+        hide_index=True,
+        key="eden_review_editor",
+        use_container_width=True
+    )
+
+    if hasattr(edited_rows, "to_dict"):
+        edited_rows = edited_rows.to_dict("records")
+
+    edited_answers = [
+        str(row.get("Value", "")).strip()
+        for row in edited_rows
+    ]
+
+    recalculate_col, save_col = st.columns(2)
+
+    with recalculate_col:
+        recalculate_preview = st.button(
+            "Recalculate Preview",
+            use_container_width=True,
+            key="eden_recalculate_preview"
+        )
+
+    with save_col:
+        save_reviewed_estimate = st.button(
+            "Save to Project",
+            type="primary",
+            use_container_width=True,
+            key="eden_save_reviewed_estimate"
+        )
+
+    if recalculate_preview:
+        add_message("user", "Recalculate estimate with revised details")
+        handle_eden_result(review["command"], edited_answers)
+        st.rerun()
+
+    if save_reviewed_estimate:
+        add_message("user", "Save reviewed estimate")
+        handle_eden_result(
+            review["command"],
+            edited_answers + ["yes"]
+        )
+        st.rerun()
 
 
 prompt = st.chat_input(

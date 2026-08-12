@@ -33,7 +33,7 @@ def get_eden_engine():
     return engine
 
 
-def create_browser_input(answers):
+def create_browser_input(answers, asked_prompts):
     position = 0
 
     def browser_input(prompt=""):
@@ -42,6 +42,7 @@ def create_browser_input(answers):
         if position >= len(answers):
             raise EdenQuestion(prompt)
 
+        asked_prompts.append(str(prompt).strip())
         answer = str(answers[position]).strip()
         position += 1
 
@@ -84,7 +85,8 @@ def run_eden(command, answers=None):
     if answers is None:
         answers = []
 
-    browser_input = create_browser_input(answers)
+    asked_prompts = []
+    browser_input = create_browser_input(answers, asked_prompts)
     terminal_output = StringIO()
     eden = get_eden_engine()
 
@@ -113,7 +115,8 @@ def run_eden(command, answers=None):
 
         return {
             "kind": "complete",
-            "text": response
+            "text": response,
+            "answer_prompts": asked_prompts
         }
 
     except EdenQuestion as question:
@@ -144,6 +147,12 @@ def run_eden(command, answers=None):
             "kind": "question",
             "text": text,
             "resume_command": resume_command,
+            "answer_prompts": asked_prompts,
+            "is_estimate_review": (
+                prompt.lower().startswith(
+                    "save this estimate to the active project"
+                )
+            )
         }
 
     except EstimateChange as change:

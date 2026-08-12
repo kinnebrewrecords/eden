@@ -389,10 +389,26 @@ class CommandHandler:
         project = self.projects.get_active_project()
 
         if project is None:
-            return f"{report}\nNo project is selected, so this estimate was not saved."
+            return (
+                f"{report}\n"
+                "No project is selected, so this estimate was not saved."
+            )
+
+        print(
+            "\nReview this estimate before saving it to the active project."
+        )
+        print(report)
+
+        if not self.ask_yes_no(
+                "Save this estimate to the active project? (yes/no): "
+        ):
+            return (
+                "Estimate not saved. You can start a new estimate or revise "
+                "the measurements and scope."
+            )
 
         self.projects.add_estimate(estimate)
-        return f'Saved to project: {project["name"]}\n{report}'
+        return f'Saved to project: {project["name"]}'
 
     def residential_whole_house_takeoff(self):
         """Guide a contractor through measured residential assemblies.
@@ -507,6 +523,14 @@ class CommandHandler:
             joist_spacing = self.ask_positive_float(
                 "Joist spacing from approved plan (inches OC): "
             )
+            joist_span_direction = self.ask_required_text(
+                "Do joists span the floor length or width? (length/width): "
+            ).lower()
+            while joist_span_direction not in ["length", "width"]:
+                print("Please enter length or width.")
+                joist_span_direction = self.ask_required_text(
+                    "Do joists span the floor length or width? (length/width): "
+                ).lower()
             rim_size = self.ask_required_text(
                 "Rim joist size from approved plan (example: 2x10): "
             )
@@ -536,7 +560,8 @@ class CommandHandler:
                         "stock_length_feet": rim_stock_length
                     },
                     include_blocking=include_blocking,
-                    blocking_rows=blocking_rows
+                    blocking_rows=blocking_rows,
+                    joist_span_direction=joist_span_direction
                 )
             )
 
@@ -837,6 +862,14 @@ class CommandHandler:
             joist_spacing = self.ask_positive_float(
                 "Joist spacing from approved plan (inches OC): "
             )
+            joist_span_direction = self.ask_required_text(
+                "Do joists span the floor length or width? (length/width): "
+            ).lower()
+            while joist_span_direction not in ["length", "width"]:
+                print("Please enter length or width.")
+                joist_span_direction = self.ask_required_text(
+                    "Do joists span the floor length or width? (length/width): "
+                ).lower()
             rim_size = self.ask_required_text(
                 "Rim joist size from approved plan (example: 2x10): "
             )
@@ -866,7 +899,8 @@ class CommandHandler:
                     "stock_length_feet": rim_stock_length
                 },
                 include_blocking=include_blocking,
-                blocking_rows=blocking_rows
+                blocking_rows=blocking_rows,
+                joist_span_direction=joist_span_direction
             )
             report = create_floor_system_assembly_report(estimate)
             return self.finish_estimate(estimate, report)

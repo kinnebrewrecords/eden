@@ -2168,11 +2168,30 @@ class Estimator:
                 "a whole-house takeoff."
             )
 
+        normalized_takeoffs = []
+
+        for component in components.values():
+            normalized_rows = []
+
+            for item in component["material_takeoff"]:
+                normalized_item = item.copy()
+                normalized_item["item"] = (
+                    normalized_item["item"]
+                    .replace(
+                        " Wall, King, and Jack Studs",
+                        " Studs"
+                    )
+                    .replace(
+                        " Top and Bottom Plates",
+                        " Plates"
+                    )
+                )
+                normalized_rows.append(normalized_item)
+
+            normalized_takeoffs.append(normalized_rows)
+
         material_takeoff = self._combine_material_takeoffs(
-            *[
-                component["material_takeoff"]
-                for component in components.values()
-            ]
+            *normalized_takeoffs
         )
 
         return {
@@ -2741,6 +2760,7 @@ class Estimator:
             rim_spec,
             include_blocking=False,
             blocking_rows=1,
+            joist_span_direction="length",
             waste_percent=None
     ):
         """Create a measured floor system from plan-specified members."""
@@ -2749,9 +2769,26 @@ class Estimator:
                 "Floor joist and rim specifications from the plan are required."
             )
 
+        if joist_span_direction not in ["length", "width"]:
+            raise ValueError(
+                "Joist span direction must be either length or width."
+            )
+
+        joist_count_length = length_feet
+        joist_count_width = width_feet
+        blocking_run_length = width_feet
+
+        if joist_span_direction == "width":
+            # LumberEstimator counts joists across its width argument.
+            # Swap the geometry so joists spanning the building width are
+            # correctly counted across the building length.
+            joist_count_length = width_feet
+            joist_count_width = length_feet
+            blocking_run_length = length_feet
+
         joists = self.lumber.floor_joists(
-            length_feet,
-            width_feet,
+            joist_count_length,
+            joist_count_width,
             joist_spec=joist_spec,
             waste_percent=waste_percent
         )
@@ -2774,7 +2811,7 @@ class Estimator:
 
         if include_blocking:
             components["Joist blocking"] = self.lumber.blocking(
-                width_feet,
+                blocking_run_length,
                 stud_spacing_inches=joist_spec["spacing_inches"],
                 rows=blocking_rows,
                 waste_percent=joists["waste_percent"],
@@ -2790,6 +2827,7 @@ class Estimator:
             "floor_area_sqft": round(length_feet * width_feet, 2),
             "joist_spec": joist_spec,
             "rim_spec": rim_spec,
+            "joist_span_direction": joist_span_direction,
             "include_blocking": include_blocking,
             "blocking_rows": blocking_rows if include_blocking else 0,
             "waste_percent": joists["waste_percent"],
