@@ -88,3 +88,4 @@ class EstimatingPreferences:
     def reset(self):
         self.data = self.defaults.copy()
         self.save()
+
