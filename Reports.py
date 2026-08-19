@@ -28,174 +28,101 @@ class ReportGenerator:
         """
 
     def create_concrete_slab_report(self, estimate):
-
         rebar = estimate.get("rebar")
-
-        report = f"""
-
-                    CONCRETE SLAB ESTIMATE
-
-            Type:
-            {estimate["type"]}
-
-            Build Type:
-            {estimate.get("build_type", "Not Specified")}
-
-            Material:
-            {estimate["material"]}
-
-            Dimensions:
-
-            Length:
-            {estimate["length"]} ft
-
-            Width:
-            {estimate["width"]} ft
-
-            Thickness:
-            {estimate["thickness_inches"]} inches
-
-            CONCRETE VOLUME:
-
-            Cubic Feet:
-            {estimate["cubic_feet"]} ft³
-
-            Cubic Yards:
-            {estimate["cubic_yards"]} yd³
-
-            Order Quantity:
-            {estimate["order_quantity"]} yd³
-
-            Waste:
-            {estimate["waste_percent"]}%
-
-            """
+        lines = [
+            "CONCRETE SLAB ESTIMATE",
+            "Type:",
+            estimate["type"],
+            "Build Type:",
+            estimate.get("build_type", "Not Specified"),
+            "Material:",
+            estimate["material"],
+            "Dimensions:",
+            "Length:",
+            f'{estimate["length"]} ft',
+            "Width:",
+            f'{estimate["width"]} ft',
+            "Thickness:",
+            f'{estimate["thickness_inches"]} inches',
+            "CONCRETE VOLUME:",
+            "Cubic Feet:",
+            f'{estimate["cubic_feet"]} ft³',
+            "Cubic Yards:",
+            f'{estimate["cubic_yards"]} yd³',
+            "Order Quantity:",
+            f'{estimate["order_quantity"]} yd³',
+            "Waste:",
+            f'{estimate["waste_percent"]}%'
+        ]
 
         if estimate.get("reinforced"):
-            report += """
-
-            REINFORCEMENT:
-
-            Status:
-            Reinforced Slab
-
-                """
+            lines.extend(["REINFORCEMENT:", "Status:", "Reinforced Slab"])
 
         if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
-            report += """
-
-            REBAR:
-
-            Status:
-            Per approved structural plan
-
-                """
+            lines.extend([
+                "REBAR:", "Status:", "Per approved structural plan"
+            ])
 
         elif isinstance(rebar, dict) and rebar.get("status") == "specified":
             schedule = rebar.get("schedule") or {}
             direction_1 = schedule.get("direction_1") or {}
             direction_2 = schedule.get("direction_2") or {}
 
-            report += f"""
-
-            REBAR:
-
-            Status:
-            Approved structural plan
-
-            Direction 1:
-            {direction_1.get("bar_size", "Not specified")}
-            ({direction_1.get("linear_feet", "Not specified")} LF)
-
-            Direction 2:
-            {direction_2.get("bar_size", "Not specified")}
-            ({direction_2.get("linear_feet", "Not specified")} LF)
-
-                """
+            lines.extend([
+                "REBAR:",
+                "Status:",
+                "Approved structural plan",
+                "Direction 1:",
+                direction_1.get("bar_size", "Not specified"),
+                f'({direction_1.get("linear_feet", "Not specified")} LF)',
+                "Direction 2:",
+                direction_2.get("bar_size", "Not specified"),
+                f'({direction_2.get("linear_feet", "Not specified")} LF)'
+            ])
 
         if estimate.get("wire_mesh"):
-            report += """
-
-            WIRE MESH:
-
-            Included:
-            Yes
-
-                """
+            lines.extend(["WIRE MESH:", "Included:", "Yes"])
 
         if estimate.get("vapor_barrier"):
-            report += """
-
-            VAPOR BARRIER:
-
-            Included:
-            Yes
-
-            Material:
-            6 mil Poly
-
-                """
+            lines.extend([
+                "VAPOR BARRIER:", "Included:", "Yes",
+                "Material:", "6 mil Poly"
+            ])
 
         if estimate.get("gravel_base"):
-            report += """
-
-            GRAVEL BASE:
-
-            Included:
-            Yes
-
-            Material:
-            Compacted Aggregate Base
-
-                """
+            lines.extend([
+                "GRAVEL BASE:", "Included:", "Yes",
+                "Material:", "Compacted Aggregate Base"
+            ])
 
         if estimate.get("control_joints"):
-            report += """
-
-            CONTROL JOINTS:
-
-            Included:
-            Yes
-
-                """
+            lines.extend(["CONTROL JOINTS:", "Included:", "Yes"])
 
         if estimate.get("forms"):
-            report += """
-
-            FORMS:
-
-            Included:
-            Yes
-
-                """
+            lines.extend(["FORMS:", "Included:", "Yes"])
 
         if (
             isinstance(rebar, dict)
             and rebar.get("status") == "specified"
             and rebar.get("takeoff")
         ):
-            report += "\n            REBAR TAKEOFF:\n"
-
+            lines.append("REBAR TAKEOFF:")
             for item in rebar["takeoff"]:
-                report += (
-                    f"\n            {item['size']}: "
+                lines.append(
+                    f"{item['size']}: "
                     f"{item['total_linear_feet']} LF, "
                     f"{item['sticks']} sticks, "
-                    f"{item['weight_lbs']} lbs\n"
+                    f"{item['weight_lbs']} lbs"
                 )
 
         if estimate.get("material_takeoff"):
-            report += "\n            MATERIAL TAKEOFF:\n"
-
+            lines.append("MATERIAL TAKEOFF:")
             for item in estimate["material_takeoff"]:
-                report += (
-                    f"\n            {item['item']}: "
+                lines.append(
+                    f"{item['item']}: "
                     f"{item['quantity']} {item['unit']}\n"
                 )
-
-        return report
-
-        return report
+        return "\n".join(str(line).rstrip("\n") for line in lines)
 
     def create_concrete_footing_report(self, estimate):
 
