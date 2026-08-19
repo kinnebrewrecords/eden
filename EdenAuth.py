@@ -26,10 +26,21 @@ def _get_cookie_manager():
     if existing_manager is not None:
         return existing_manager
 
+    # streamlit-cookies-manager 2.0.0 still decorates its key-derivation
+    # helper with the legacy ``st.cache`` API, which was removed from recent
+    # Streamlit releases.  ``st.cache_data`` has the right semantics for that
+    # pure function, so expose it only while importing the dependency.
+    restore_legacy_cache = not hasattr(st, "cache")
+    if restore_legacy_cache:
+        st.cache = st.cache_data
+
     try:
         from streamlit_cookies_manager import EncryptedCookieManager
     except ImportError:
         return None
+    finally:
+        if restore_legacy_cache:
+            del st.cache
 
     try:
         password = st.secrets["supabase"]["cookie_password"]
