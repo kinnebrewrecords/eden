@@ -11,9 +11,51 @@ from EdenAuth import (
 )
 
 
+def require_authenticated_login():
+    """Require identity only, without granting protected Eden features."""
+    user = current_user()
+    if user:
+        return user
+
+    st.markdown(
+        """
+        <section class="eden-hero">
+            <p class="eden-hero-kicker">Eden account required</p>
+            <h1>Sign in to open your workspace.</h1>
+            <p class="eden-hero-subtitle">
+                Sign in to recover your private cloud workspace or open Eden.
+            </p>
+        </section>
+        """,
+        unsafe_allow_html=True
+    )
+
+    with st.form("eden_splash_sign_in_form"):
+        email = st.text_input("Email", key="eden_splash_sign_in_email")
+        password = st.text_input(
+            "Password",
+            type="password",
+            key="eden_splash_sign_in_password"
+        )
+        submit = st.form_submit_button("Sign In")
+
+    if submit:
+        try:
+            sign_in(email.strip(), password)
+            st.rerun()
+        except Exception as error:
+            st.error(f"Could not sign in: {error}")
+
+    st.caption(
+        "New to Eden? Create your account through the Eden website after "
+        "starting your trial or subscription."
+    )
+    st.stop()
+
+
 def require_eden_login():
     """Stop protected pages until the visitor signs into an Eden account."""
-    user = current_user()
+    user = require_authenticated_login()
 
     if user:
         # Sign-in verifies the entitlement with Supabase. Retain that
@@ -76,40 +118,4 @@ def require_eden_login():
             )
             st.caption(f"Workspace-load detail: {error}")
             st.stop()
-        return
-
-    st.markdown(
-        """
-        <section class="eden-hero">
-            <p class="eden-hero-kicker">Eden account required</p>
-            <h1>Sign in to open your workspace.</h1>
-            <p class="eden-hero-subtitle">
-                Your projects, pricing, bids, schedule, and daily logs are
-                available after you sign into your Eden account.
-            </p>
-        </section>
-        """,
-        unsafe_allow_html=True
-    )
-
-    with st.form("eden_splash_sign_in_form"):
-        email = st.text_input("Email", key="eden_splash_sign_in_email")
-        password = st.text_input(
-            "Password",
-            type="password",
-            key="eden_splash_sign_in_password"
-        )
-        submit = st.form_submit_button("Open Eden Workspace")
-
-    if submit:
-        try:
-            sign_in(email.strip(), password)
-            st.rerun()
-        except Exception as error:
-            st.error(f"Could not sign in: {error}")
-
-    st.caption(
-        "New to Eden? Create your account through the Eden website after "
-        "starting your trial or subscription."
-    )
-    st.stop()
+        return user
