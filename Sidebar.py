@@ -115,9 +115,15 @@ def render_sidebar(
                 )
 
             def switch_active_project():
-                projects.select_project(
-                    st.session_state[project_switcher_key]
+                selected_name = st.session_state.get(
+                    project_switcher_key
                 )
+
+                # Streamlit can discard a widget key while rerunning after a
+                # project is deleted, restored, or replaced from the cloud.
+                # Ignore that stale callback instead of crashing the app.
+                if selected_name in project_names:
+                    projects.select_project(selected_name)
 
             selected_project = st.sidebar.selectbox(
                 "Active project",
