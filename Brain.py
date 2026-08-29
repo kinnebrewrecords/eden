@@ -15,22 +15,25 @@ class Brain:
 
         move_estimate_match = re.fullmatch(
             r"(?:move|save)(?:\s+the)?(?:\s+(?:last|latest|most recent))?"
-            r"\s+estimate\s+(?:to|in)\s+(?:project\s+)?"
-            r"(.+?)(?:\s+instead)?",
+            r"\s+estimate\s+(?:to|in)\s*(?:project\s*)?"
+            r"(?:[:=.\-]+\s*)?[\"']?"
+            r"(.+?)[\"']?(?:\s+instead)?[.!?]*",
             normalized_command
         )
         wrong_project_match = re.fullmatch(
             r"wrong\s+project[,;:]?\s*(?:move|save)"
             r"(?:\s+(?:it|the\s+last\s+estimate))?"
-            r"\s+(?:to|in)\s+(?:project\s+)?"
-            r"(.+?)(?:\s+instead)?",
+            r"\s+(?:to|in)\s*(?:project\s*)?"
+            r"(?:[:=.\-]+\s*)?[\"']?"
+            r"(.+?)[\"']?(?:\s+instead)?[.!?]*",
             normalized_command
         )
 
         estimate_move = move_estimate_match or wrong_project_match
         if estimate_move:
+            destination_name = estimate_move.group(1).strip(" \t\"'.!?")
             return self.commands.move_last_estimate_command(
-                estimate_move.group(1)
+                destination_name
             )
 
         waste_match = re.search(

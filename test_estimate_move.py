@@ -82,6 +82,28 @@ class EstimateMoveTests(unittest.TestCase):
         self.assertEqual(response, "moved")
         commands.move_last_estimate_command.assert_called_once_with("fish")
 
+    def test_brain_understands_save_last_estimate_phrase(self):
+        memory = Mock()
+        commands = Mock()
+        commands.move_last_estimate_command.return_value = "moved"
+        brain = Brain(memory, commands)
+
+        response = brain.think("save last estimate to Fish")
+
+        self.assertEqual(response, "moved")
+        commands.move_last_estimate_command.assert_called_once_with("fish")
+
+    def test_brain_ignores_chat_punctuation_around_project_name(self):
+        memory = Mock()
+        commands = Mock()
+        commands.move_last_estimate_command.return_value = "moved"
+        brain = Brain(memory, commands)
+
+        response = brain.think('save last estimate to.... "Fish".')
+
+        self.assertEqual(response, "moved")
+        commands.move_last_estimate_command.assert_called_once_with("fish")
+
 
 if __name__ == "__main__":
     unittest.main()
