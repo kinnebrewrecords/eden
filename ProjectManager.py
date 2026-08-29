@@ -228,6 +228,52 @@ class ProjectManager:
         self.save()
         return True
 
+    def move_last_estimate_to_project(self, destination_name):
+        """Move the newest estimate to another project in one saved change."""
+        source_key = self.data.get("active_project")
+        destination_key = " ".join(
+            str(destination_name).strip().lower().split()
+        )
+
+        if source_key is None:
+            return {"ok": False, "reason": "no_active_project"}
+
+        if destination_key not in self.data["projects"]:
+            return {"ok": False, "reason": "destination_not_found"}
+
+        if destination_key == source_key:
+            return {"ok": False, "reason": "same_project"}
+
+        source_project = self.data["projects"][source_key]
+        destination_project = self.data["projects"][destination_key]
+        source_estimates = source_project.setdefault("estimates", [])
+
+        if not source_estimates:
+            return {"ok": False, "reason": "no_estimates"}
+
+        moved_estimate = source_estimates.pop()
+        destination_estimates = destination_project.setdefault(
+            "estimates",
+            []
+        )
+        destination_estimates.append(moved_estimate)
+        self.data["active_project"] = destination_key
+
+        try:
+            self.save()
+        except Exception:
+            destination_estimates.pop()
+            source_estimates.append(moved_estimate)
+            self.data["active_project"] = source_key
+            raise
+
+        return {
+            "ok": True,
+            "estimate": moved_estimate,
+            "source_project": source_project["name"],
+            "destination_project": destination_project["name"]
+        }
+
     def add_custom_item(self, item):
         """Save one user-entered material or allowance to the active project."""
         project = self.get_active_project()

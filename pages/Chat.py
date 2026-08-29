@@ -557,6 +557,12 @@ if prompt:
         "create project",
         "select project",
         "open project",
+        "move estimate",
+        "move last estimate",
+        "move latest estimate",
+        "save last estimate",
+        "save latest estimate",
+        "wrong project",
         "show project",
         "show projects",
         "list projects"

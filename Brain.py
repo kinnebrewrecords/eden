@@ -13,6 +13,26 @@ class Brain:
     def think(self,command):
         normalized_command = command.lower().strip()
 
+        move_estimate_match = re.fullmatch(
+            r"(?:move|save)(?:\s+the)?(?:\s+(?:last|latest|most recent))?"
+            r"\s+estimate\s+(?:to|in)\s+(?:project\s+)?"
+            r"(.+?)(?:\s+instead)?",
+            normalized_command
+        )
+        wrong_project_match = re.fullmatch(
+            r"wrong\s+project[,;:]?\s*(?:move|save)"
+            r"(?:\s+(?:it|the\s+last\s+estimate))?"
+            r"\s+(?:to|in)\s+(?:project\s+)?"
+            r"(.+?)(?:\s+instead)?",
+            normalized_command
+        )
+
+        estimate_move = move_estimate_match or wrong_project_match
+        if estimate_move:
+            return self.commands.move_last_estimate_command(
+                estimate_move.group(1)
+            )
+
         waste_match = re.search(
             r"(?:set|change|update)\s+"
             r"(?:(concrete|lumber|framing|roofing|drywall|insulation)\s+)?"

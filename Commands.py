@@ -265,6 +265,7 @@ class CommandHandler:
     Project and Memory:
     - create project <project name>
     - select project <project name>
+    - move last estimate to <project name>
     - show project
     - remember <key> <value>
     - recall <key>
@@ -7033,6 +7034,42 @@ class CommandHandler:
             return f"Now working on '{project['name']}'."
 
         return f"I couldn't find a project with the name '{name}'."
+
+    def move_last_estimate_command(self, destination_name):
+        destination_name = str(destination_name).strip()
+        result = self.projects.move_last_estimate_to_project(
+            destination_name
+        )
+
+        if result["ok"]:
+            estimate = result["estimate"]
+            estimate_name = estimate.get(
+                "display_name",
+                estimate.get("type", "estimate")
+            )
+            return (
+                f'Moved the most recent {estimate_name} from '
+                f'"{result["source_project"]}" to '
+                f'"{result["destination_project"]}". '
+                f'"{result["destination_project"]}" is now the active '
+                "project for new estimates."
+            )
+
+        reason = result["reason"]
+
+        if reason == "no_active_project":
+            return "No project is selected, so there is no estimate to move."
+
+        if reason == "destination_not_found":
+            return f'I could not find a project named "{destination_name}".'
+
+        if reason == "same_project":
+            return (
+                f'"{destination_name}" is already the active project. '
+                "The estimate was not changed."
+            )
+
+        return "The active project has no saved estimates to move."
 
     def show_project_command(self, command):
         parts = command.split()
