@@ -31,96 +31,100 @@ class ReportGenerator:
         rebar = estimate.get("rebar")
         lines = [
             "CONCRETE SLAB ESTIMATE",
-            "Type:",
-            estimate["type"],
-            "Build Type:",
-            estimate.get("build_type", "Not Specified"),
-            "Material:",
-            estimate["material"],
-            "Dimensions:",
-            "Length:",
-            f'{estimate["length"]} ft',
-            "Width:",
-            f'{estimate["width"]} ft',
-            "Thickness:",
-            f'{estimate["thickness_inches"]} inches',
+            f'Type: {estimate["type"]}',
+            f'Build Type: {estimate.get("build_type", "Not Specified")}',
+            f'Material: {estimate["material"]}',
+            "",
+            "DIMENSIONS",
+            (
+                f'Length: {estimate["length"]} ft | '
+                f'Width: {estimate["width"]} ft | '
+                f'Thickness: {estimate["thickness_inches"]} in'
+            ),
+            "",
             "CONCRETE VOLUME:",
-            "Cubic Feet:",
-            f'{estimate["cubic_feet"]} ft³',
-            "Cubic Yards:",
-            f'{estimate["cubic_yards"]} yd³',
-            "Order Quantity:",
-            f'{estimate["order_quantity"]} yd³',
-            "Waste:",
-            f'{estimate["waste_percent"]}%'
+            (
+                f'Calculated: {estimate["cubic_feet"]} ft³ '
+                f'({estimate["cubic_yards"]} yd³)'
+            ),
+            (
+                f'Order Quantity: {estimate["order_quantity"]} yd³ | '
+                f'Waste: {estimate["waste_percent"]}%'
+            )
         ]
 
+        def add_section(title, *details):
+            lines.extend(["", title, *details])
+
+        assembly_details = []
+
         if estimate.get("reinforced"):
-            lines.extend(["REINFORCEMENT:", "Status:", "Reinforced Slab"])
+            assembly_details.append("Reinforcement: Reinforced Slab")
 
         if isinstance(rebar, dict) and rebar.get("status") == "plan_required":
-            lines.extend([
-                "REBAR:", "Status:", "Per approved structural plan"
-            ])
+            assembly_details.append(
+                "Rebar: Per approved structural plan"
+            )
 
         elif isinstance(rebar, dict) and rebar.get("status") == "specified":
             schedule = rebar.get("schedule") or {}
             direction_1 = schedule.get("direction_1") or {}
             direction_2 = schedule.get("direction_2") or {}
 
-            lines.extend([
-                "REBAR:",
-                "Status:",
-                "Approved structural plan",
-                "Direction 1:",
-                direction_1.get("bar_size", "Not specified"),
-                f'({direction_1.get("linear_feet", "Not specified")} LF)',
-                "Direction 2:",
-                direction_2.get("bar_size", "Not specified"),
-                f'({direction_2.get("linear_feet", "Not specified")} LF)'
+            assembly_details.extend([
+                "Rebar: Approved structural plan",
+                (
+                    "Direction 1: "
+                    f'{direction_1.get("bar_size", "Not specified")} '
+                    f'({direction_1.get("linear_feet", "Not specified")} LF)'
+                ),
+                (
+                    "Direction 2: "
+                    f'{direction_2.get("bar_size", "Not specified")} '
+                    f'({direction_2.get("linear_feet", "Not specified")} LF)'
+                )
             ])
 
         if estimate.get("wire_mesh"):
-            lines.extend(["WIRE MESH:", "Included:", "Yes"])
+            assembly_details.append("Wire Mesh: Included")
 
         if estimate.get("vapor_barrier"):
-            lines.extend([
-                "VAPOR BARRIER:", "Included:", "Yes",
-                "Material:", "6 mil Poly"
-            ])
+            assembly_details.append("Vapor Barrier: 6 mil Poly")
 
         if estimate.get("gravel_base"):
-            lines.extend([
-                "GRAVEL BASE:", "Included:", "Yes",
-                "Material:", "Compacted Aggregate Base"
-            ])
+            assembly_details.append(
+                "Gravel Base: Compacted Aggregate Base"
+            )
 
         if estimate.get("control_joints"):
-            lines.extend(["CONTROL JOINTS:", "Included:", "Yes"])
+            assembly_details.append("Control Joints: Included")
 
         if estimate.get("forms"):
-            lines.extend(["FORMS:", "Included:", "Yes"])
+            assembly_details.append("Forms: Included")
+
+        if assembly_details:
+            add_section("ASSEMBLY:", *assembly_details)
 
         if (
             isinstance(rebar, dict)
             and rebar.get("status") == "specified"
             and rebar.get("takeoff")
         ):
-            lines.append("REBAR TAKEOFF:")
+            add_section("REBAR TAKEOFF:")
             for item in rebar["takeoff"]:
                 lines.append(
-                    f"{item['size']}: "
+                    f"- {item['size']}: "
                     f"{item['total_linear_feet']} LF, "
                     f"{item['sticks']} sticks, "
                     f"{item['weight_lbs']} lbs"
                 )
 
         if estimate.get("material_takeoff"):
-            lines.append("MATERIAL TAKEOFF:")
+            add_section("MATERIAL TAKEOFF:")
             for item in estimate["material_takeoff"]:
                 lines.append(
-                    f"{item['item']}: "
-                    f"{item['quantity']} {item['unit']}\n"
+                    f"- {item['item']}: "
+                    f"{item['quantity']} {item['unit']}"
                 )
         return "\n".join(str(line).rstrip("\n") for line in lines)
 
