@@ -8,6 +8,55 @@ from Sidebar import render_sidebar
 from AuthGate import require_eden_login
 
 
+def format_chat_content(content, is_assistant=False):
+    """Render estimate reports with hierarchy while escaping all content."""
+    text = str(content)
+    lines = text.splitlines()
+    is_estimate = is_assistant and any(
+        line.strip().endswith("ESTIMATE")
+        for line in lines
+    )
+
+    if not is_estimate:
+        return html.escape(text).replace("\n", "<br>")
+
+    rendered_lines = []
+
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        safe_line = html.escape(line)
+
+        if line.startswith("Review this estimate"):
+            css_class = "eden-report-note"
+        elif line.endswith("ESTIMATE"):
+            css_class = "eden-report-title"
+        elif (
+                line.rstrip(":").isupper()
+                and len(line) <= 50
+        ):
+            css_class = "eden-report-section"
+        elif line.startswith("- "):
+            css_class = "eden-report-item"
+            safe_line = html.escape(line[2:])
+        else:
+            css_class = "eden-report-detail"
+            if ": " in line:
+                label, value = line.split(": ", 1)
+                safe_line = (
+                    '<span class="eden-report-label">'
+                    f'{html.escape(label)}:</span> {html.escape(value)}'
+                )
+
+        rendered_lines.append(
+            f'<div class="{css_class}">{safe_line}</div>'
+        )
+
+    return '<div class="eden-report">' + "".join(rendered_lines) + "</div>"
+
+
 st.set_page_config(
     page_title="Chat with Eden",
     layout="wide"
@@ -130,6 +179,55 @@ st.markdown(
             color: #061019;
             font-weight: 500;
             margin-left: auto;
+        }
+
+        .eden-report {
+            display: grid;
+            gap: 7px;
+            white-space: normal;
+        }
+
+        .eden-report-note {
+            border-left: 3px solid #38BDF8;
+            color: #C8D6E8;
+            font-size: 0.88rem;
+            margin-bottom: 4px;
+            padding: 5px 10px;
+        }
+
+        .eden-report-title {
+            color: #F8FAFC;
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: 0.055em;
+            padding: 3px 0 7px 0;
+        }
+
+        .eden-report-section {
+            border-top: 1px solid rgba(125, 211, 252, 0.24);
+            color: #7DD3FC;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.09em;
+            margin-top: 7px;
+            padding-top: 10px;
+        }
+
+        .eden-report-detail,
+        .eden-report-item {
+            background: rgba(7, 15, 25, 0.34);
+            border-radius: 8px;
+            color: #DCE8F7;
+            padding: 7px 10px;
+        }
+
+        .eden-report-item {
+            border-left: 2px solid rgba(56, 189, 248, 0.62);
+        }
+
+        .eden-report-label {
+            color: #F8FAFC;
+            font-weight: 700;
         }
 
         [data-testid="stChatInput"] {
@@ -346,9 +444,10 @@ for message in st.session_state.eden_browser_messages:
             message["role"],
             avatar=avatar
     ):
-        safe_content = html.escape(
-            str(message["content"])
-        ).replace("\n", "<br>")
+        safe_content = format_chat_content(
+            message["content"],
+            is_assistant=message["role"] == "assistant"
+        )
 
         bubble_class = (
             "eden-bubble-assistant"
