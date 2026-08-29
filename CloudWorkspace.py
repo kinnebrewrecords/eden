@@ -21,6 +21,7 @@ WORKSPACE_FILES = [
     "pricing.json",
     "memory.json"
 ]
+SYNC_STATE_FILE = ".eden_cloud_sync.json"
 
 
 def validate_workspace_archive(workspace):
@@ -224,6 +225,58 @@ def _workspace_fingerprint(workspace):
     return hashlib.sha256(encoded_files).hexdigest()
 
 
+def determine_workspace_sync_action(
+        local_fingerprint,
+        cloud_fingerprint,
+        last_synced_fingerprint,
+        local_has_data
+):
+    """Classify startup state without guessing which changed copy is newer."""
+    if local_fingerprint == cloud_fingerprint:
+        return "current"
+
+    if not local_has_data:
+        return "restore_cloud"
+
+    if last_synced_fingerprint == cloud_fingerprint:
+        return "upload_local"
+
+    if last_synced_fingerprint == local_fingerprint:
+        return "restore_cloud"
+
+    return "conflict"
+
+
+def _sync_state_path():
+    return workspace_file(__file__, SYNC_STATE_FILE)
+
+
+def _read_last_synced_fingerprint():
+    path = _sync_state_path()
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    return data.get("cloud_fingerprint")
+
+
+def _remember_synced_fingerprint(fingerprint):
+    if not fingerprint:
+        return
+
+    try:
+        _atomic_write_json(
+            _sync_state_path(),
+            {"cloud_fingerprint": fingerprint}
+        )
+    except OSError:
+        # Cloud storage remains safe if optional local sync metadata cannot
+        # be written; Eden will ask the user to resolve the next mismatch.
+        pass
+
+
 def _workspace_has_user_data(workspace):
     """Do not treat an empty first-run folder as a backup candidate."""
     files = workspace.get("files", {}) if workspace else {}
@@ -304,6 +357,9 @@ def backup_local_workspace(store, user_id):
     st.session_state["eden_cloud_workspace_hash"] = (
         _workspace_fingerprint(workspace)
     )
+    _remember_synced_fingerprint(
+        st.session_state["eden_cloud_workspace_hash"]
+    )
     st.session_state.pop("eden_workspace_conflict", None)
     return workspace
 
@@ -362,6 +418,9 @@ def import_workspace_archive(store, user_id, workspace, mode):
     st.session_state["eden_cloud_workspace_hash"] = (
         _workspace_fingerprint(result)
     )
+    _remember_synced_fingerprint(
+        st.session_state["eden_cloud_workspace_hash"]
+    )
     st.session_state.pop("eden_workspace_conflict", None)
 
     return result, report, current
@@ -386,17 +445,30 @@ def activate_workspace_for_current_user():
         cloud_fingerprint = _workspace_fingerprint(workspace)
         local_has_data = _workspace_has_user_data(local_workspace)
         local_fingerprint = _workspace_fingerprint(local_workspace)
+        sync_action = determine_workspace_sync_action(
+            local_fingerprint,
+            cloud_fingerprint,
+            _read_last_synced_fingerprint(),
+            local_has_data
+        )
 
-        if local_has_data and local_fingerprint != cloud_fingerprint:
-            # Never overwrite meaningful local work simply because a cloud
-            # copy exists. The user can decide between restore and manual
-            # backup in Account & Cloud.
+        if sync_action == "conflict":
+            # Both copies changed since the last confirmed sync (or Eden has
+            # no prior sync record). Require an explicit recovery choice.
             st.session_state["eden_workspace_conflict"] = True
             st.session_state["eden_cloud_workspace_hash"] = cloud_fingerprint
-        else:
+        elif sync_action == "restore_cloud":
             _restore_workspace_files(workspace["files"], create_backups=False)
             st.session_state.pop("eden_workspace_conflict", None)
             st.session_state["eden_cloud_workspace_hash"] = cloud_fingerprint
+            _remember_synced_fingerprint(cloud_fingerprint)
+        else:
+            # For "upload_local", remember the unchanged cloud base so the
+            # sidebar can safely upload local changes on this same rerun.
+            st.session_state.pop("eden_workspace_conflict", None)
+            st.session_state["eden_cloud_workspace_hash"] = cloud_fingerprint
+            if sync_action == "current":
+                _remember_synced_fingerprint(cloud_fingerprint)
     else:
         st.session_state.pop("eden_workspace_conflict", None)
         st.session_state.pop("eden_cloud_workspace_hash", None)
@@ -464,6 +536,7 @@ def auto_backup_if_needed():
         "automatic_backup"
     )
     st.session_state["eden_cloud_workspace_hash"] = fingerprint
+    _remember_synced_fingerprint(fingerprint)
     return "synced"
 
 
@@ -485,6 +558,9 @@ def restore_local_workspace(store, user_id):
 
     st.session_state["eden_cloud_workspace_hash"] = (
         _workspace_fingerprint(workspace)
+    )
+    _remember_synced_fingerprint(
+        st.session_state["eden_cloud_workspace_hash"]
     )
     st.session_state.pop("eden_workspace_conflict", None)
 

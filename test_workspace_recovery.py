@@ -4,6 +4,7 @@ import json
 import unittest
 
 from CloudWorkspace import (
+    determine_workspace_sync_action,
     merge_workspace_archives,
     parse_workspace_archive,
     validate_workspace_archive,
@@ -31,6 +32,38 @@ def workspace(projects=None, active_project=None, profile=None):
 
 
 class WorkspaceRecoveryTests(unittest.TestCase):
+    def test_sync_action_uploads_local_when_cloud_base_is_unchanged(self):
+        self.assertEqual(
+            determine_workspace_sync_action(
+                "local-new", "cloud-old", "cloud-old", True
+            ),
+            "upload_local"
+        )
+
+    def test_sync_action_restores_cloud_when_local_matches_old_base(self):
+        self.assertEqual(
+            determine_workspace_sync_action(
+                "local-old", "cloud-new", "local-old", True
+            ),
+            "restore_cloud"
+        )
+
+    def test_sync_action_requires_choice_when_both_copies_changed(self):
+        self.assertEqual(
+            determine_workspace_sync_action(
+                "local-new", "cloud-new", "old-base", True
+            ),
+            "conflict"
+        )
+
+    def test_sync_action_restores_cloud_to_an_empty_device(self):
+        self.assertEqual(
+            determine_workspace_sync_action(
+                "empty", "cloud", None, False
+            ),
+            "restore_cloud"
+        )
+
     def test_archive_round_trip_preserves_projects(self):
         original = workspace(
             {"barn": {"name": "Barn", "estimates": []}},
