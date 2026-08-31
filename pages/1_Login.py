@@ -40,8 +40,16 @@ with st.form("website_eden_sign_in_form"):
 
 if submit:
     try:
-        sign_in(email.strip(), password)
-        st.switch_page("Frontend.py")
+        signed_in_session = sign_in(email.strip(), password)
+        st.session_state["eden_login_notice"] = (
+            f"Signed in as {signed_in_session['email']}. "
+            "Continue when you are ready to open this account's workspace."
+        )
+
+        # Let the encrypted browser cookie finish saving before navigating
+        # to another Streamlit page. Switching immediately can let the next
+        # page restore the previous account's cookie during an account swap.
+        st.rerun()
     except Exception as error:
         st.error(f"Could not sign in: {error}")
 
