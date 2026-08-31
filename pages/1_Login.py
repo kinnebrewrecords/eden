@@ -28,7 +28,10 @@ if user:
         sign_out()
         st.rerun()
 
-    if st.button("Continue to My Eden Workspace"):
+    if st.button(
+            "Continue to My Eden Workspace",
+            key="eden_login_continue_workspace"
+    ):
         st.switch_page("Frontend.py")
 
     st.stop()
@@ -41,15 +44,20 @@ with st.form("website_eden_sign_in_form"):
 if submit:
     try:
         signed_in_session = sign_in(email.strip(), password)
-        st.session_state["eden_login_notice"] = (
+        st.success(
             f"Signed in as {signed_in_session['email']}. "
             "Continue when you are ready to open this account's workspace."
         )
 
-        # Let the encrypted browser cookie finish saving before navigating
-        # to another Streamlit page. Switching immediately can let the next
-        # page restore the previous account's cookie during an account swap.
-        st.rerun()
+        st.button(
+            "Continue to My Eden Workspace",
+            key="eden_login_continue_workspace"
+        )
+
+        # Do not rerun or navigate in the same render that saves the encrypted
+        # browser cookie. Ending this render gives the cookie component time
+        # to replace the previous account before any page navigation begins.
+        st.stop()
     except Exception as error:
         st.error(f"Could not sign in: {error}")
 
