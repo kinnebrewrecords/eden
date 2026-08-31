@@ -222,9 +222,9 @@ def render_sidebar(
     st.sidebar.divider()
     st.sidebar.subheader("Workspace")
 
-    st.sidebar.link_button(
-        "Dashboard",
-        url="/",
+    st.sidebar.page_link(
+        "Frontend.py",
+        label="Dashboard",
         icon=":material/dashboard:",
         use_container_width=True
     )
