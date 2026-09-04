@@ -1,0 +1,23 @@
+.product-header{position:relative;border-bottom:1px solid var(--line)}
+.site-nav a.current{color:var(--accent)}
+.product-hero{min-height:560px;padding:120px clamp(24px,15vw,240px) 100px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;background:radial-gradient(ellipse 38% 70% at 88% 12%,rgba(182,239,71,.13),transparent 68%),linear-gradient(135deg,#090a09,#121713 70%,#070707);border-bottom:1px solid var(--line)}
+.product-hero h1{font-size:clamp(2.6rem,5.3vw,5.7rem);line-height:.97;letter-spacing:-.07em;max-width:1000px;margin:0}
+.product-hero>p:not(.eyebrow){max-width:630px;color:var(--muted);font-size:1.08rem;margin:27px 0 31px}
+.product-current{padding:100px clamp(24px,11vw,180px);display:grid;grid-template-columns:250px 1fr;gap:70px;border-bottom:1px solid var(--line)}
+.product-status{height:max-content;display:flex;flex-direction:column;gap:9px;padding:20px;border:1px solid rgba(182,239,71,.38);border-radius:12px;background:rgba(182,239,71,.06)}
+.product-status span,.roadmap-card span{color:var(--accent);font:600 .63rem var(--mono);text-transform:uppercase;letter-spacing:.1em}.product-status strong{font-size:1.2rem}.product-status em{font-style:normal;color:var(--muted);font-size:.79rem}
+.product-current h2{font-size:clamp(2rem,3.4vw,3.75rem);line-height:1.02;letter-spacing:-.06em;margin:0}.product-lead{color:var(--muted);font-size:1rem;max-width:690px}
+.capability-grid{grid-column:2;display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.capability-grid article{padding:23px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.018)}.capability-grid b{color:var(--accent);font:500 .7rem var(--mono)}.capability-grid h3{margin:33px 0 8px;font-size:1.07rem}.capability-grid p,.roadmap-card p{color:var(--muted);font-size:.86rem;margin:0}
+.product-roadmap{padding:105px clamp(24px,11vw,180px);background:linear-gradient(125deg,rgba(255,255,255,.03),transparent 48%)}.roadmap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:46px}.roadmap-card{padding:28px 25px;border:1px solid var(--line);border-radius:15px;background:rgba(0,0,0,.2);min-height:355px}.roadmap-card.highlight{border-color:rgba(182,239,71,.45);background:linear-gradient(145deg,rgba(182,239,71,.10),rgba(0,0,0,.12))}.roadmap-card h3{font-size:1.5rem;margin:42px 0 12px}.roadmap-card ul{list-style:none;padding:0;margin:29px 0}.roadmap-card li{padding:7px 0;border-top:1px solid var(--line);font-size:.8rem;color:#d4d6d0}.roadmap-card li::before{content:'↗';color:var(--accent);margin-right:8px}
+.product-cta{text-align:center;padding:130px 24px;background:radial-gradient(circle at 50% 100%,rgba(182,239,71,.13),transparent 46%)}.product-cta h2{font-size:clamp(2.5rem,4vw,4.3rem);letter-spacing:-.06em;margin:0}.product-cta>p:not(.eyebrow){color:var(--muted);max-width:520px;margin:17px auto 28px}
+@media(max-width:900px){.product-hero{padding:100px 28px 80px}.product-current{grid-template-columns:1fr;gap:32px;padding:80px 28px}.capability-grid{grid-column:auto}.roadmap-grid{grid-template-columns:1fr}}
+.legal-page {
+  width: min(780px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 96px 0 120px;
+}
+
+.legal-page h1 { margin-bottom: 28px; }
+.legal-page h2 { margin: 42px 0 10px; font-size: 1.35rem; }
+.legal-page p { line-height: 1.75; color: var(--muted); }
+.legal-page a, footer a { color: inherit; }

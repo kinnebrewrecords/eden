@@ -34,6 +34,9 @@ def create_project_pdf(
         topMargin=0.65 * inch,
         bottomMargin=0.65 * inch
     )
+    document.title = f"{project['name']} - Internal Cost Sheet"
+    document.author = profile.get("company", "Your Company")
+    document.subject = "Internal construction cost estimate"
 
     styles = getSampleStyleSheet()
     story = []
@@ -58,15 +61,22 @@ def create_project_pdf(
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(
-        Paragraph(f"<b>{company}</b>", styles["Heading2"])
+        Paragraph(f"<b>{escape(str(company))}</b>", styles["Heading2"])
     )
 
     company_lines = [
         line for line in [name, phone, email, address] if line
     ]
 
-    for line in company_lines:
-        story.append(Paragraph(line, styles["Normal"]))
+    if company_lines:
+        story.append(
+            Paragraph(
+                f"<b>Prepared by:</b> {escape(str(company_lines[0]))}",
+                styles["Normal"]
+            )
+        )
+        for line in company_lines[1:]:
+            story.append(Paragraph(escape(str(line)), styles["Normal"]))
 
     story.append(Spacer(1, 0.2 * inch))
 
@@ -74,16 +84,18 @@ def create_project_pdf(
     customer_email = details.get("customer_email", "")
     project_address = details.get("project_address", "")
 
-    project_info = [
-        ["Project", project["name"]],
-        ["Customer", customer_name or "Not specified"],
-        ["Customer Email", customer_email or "Not specified"],
-        ["Project Address", project_address or "Not specified"]
-    ]
+    project_info = [["Project", project["name"]]]
+    for label, value in [
+        ("Customer", customer_name),
+        ("Customer Email", customer_email),
+        ("Project Address", project_address)
+    ]:
+        if value:
+            project_info.append([label, value])
 
     project_table = Table(
         project_info,
-        colWidths=[1.6 * inch, 6.5 * inch]
+        colWidths=[1.45 * inch, 5.75 * inch]
     )
     project_table.hAlign = "LEFT"
 
@@ -159,10 +171,10 @@ def create_project_pdf(
         )
 
     material_widths = (
-        [2.25 * inch, 0.45 * inch, 0.8 * inch, 0.85 * inch,
-         0.95 * inch, 2.8 * inch]
+        [2.0 * inch, 0.65 * inch, 0.65 * inch, 0.85 * inch,
+         0.85 * inch, 2.2 * inch]
         if priced_takeoff is not None
-        else [6.9 * inch, 1.5 * inch, 1.2 * inch]
+        else [5.4 * inch, 0.8 * inch, 1.0 * inch]
     )
 
     material_table = Table(
@@ -187,7 +199,7 @@ def create_project_pdf(
     story.append(Spacer(1, 0.25 * inch))
 
     if bid_summary is not None:
-        story.append(Paragraph("Bid Summary", styles["Heading2"]))
+        story.append(Paragraph("Internal Cost Summary", styles["Heading2"]))
 
         material_complete = bid_summary.get(
             "materials_complete",
@@ -201,7 +213,7 @@ def create_project_pdf(
             ["Overhead", f"${bid_summary.get('overhead_cost', 0.0):,.2f}"],
             ["Profit", f"${bid_summary.get('profit_amount', 0.0):,.2f}"],
             [
-                "Customer Price" if material_complete else "Customer Price Status",
+                "Calculated Price" if material_complete else "Pricing Status",
                 (
                     f"${customer_price:,.2f}"
                     if material_complete
@@ -210,7 +222,8 @@ def create_project_pdf(
             ]
         ]
 
-        bid_table = Table(bid_rows, colWidths=[3.2 * inch, 6.5 * inch])
+        bid_table = Table(bid_rows, colWidths=[2.25 * inch, 4.95 * inch])
+        bid_table.hAlign = "LEFT"
         bid_table.setStyle(
             TableStyle([
                 ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#315C3B")),
@@ -222,6 +235,18 @@ def create_project_pdf(
             ])
         )
         story.append(bid_table)
+
+        overhead_cost = float(bid_summary.get("overhead_cost", 0.0) or 0.0)
+        profit_amount = float(bid_summary.get("profit_amount", 0.0) or 0.0)
+        if material_complete and overhead_cost == 0.0 and profit_amount == 0.0:
+            story.append(Spacer(1, 0.1 * inch))
+            story.append(
+                Paragraph(
+                    "<b>Pricing notice:</b> No overhead or profit has been "
+                    "applied. Review pricing before presenting it to a customer.",
+                    styles["Normal"]
+                )
+            )
 
         labor_trades = bid_summary.get("labor_trades", [])
         if labor_trades:
@@ -320,7 +345,7 @@ def create_project_pdf(
 
     story.append(
         Paragraph(
-            "This report is a material estimate. Final design, "
+            "This report is an internal construction cost estimate. Final design, "
             "quantities, specifications, and installation must follow "
             "approved plans and applicable code requirements.",
             styles["Normal"]

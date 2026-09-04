@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Sign in to your Eden account.">
+  <title>Account | Eden</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="product.css">
+</head>
+<body>
+  <header class="site-header product-header">
+    <a class="brand" href="index.html" aria-label="Eden home"><img src="assets/eden_logo.png" alt="Eden"></a>
+    <button class="menu-toggle" aria-label="Open navigation" aria-expanded="false">Menu</button>
+    <nav class="site-nav" aria-label="Main navigation"><a href="product.html">Product</a><a href="index.html#features">Features</a><a href="index.html#pricing">Pricing</a><a href="index.html#roadmap">Roadmap</a><a href="index.html#about">About</a></nav>
+    <div class="header-actions"><a class="login-link" href="account.html">Log in</a><a class="button button-outline button-small" href="account.html">Start free trial <span>↗</span></a></div>
+  </header>
+
+  <main>
+    <section class="account-hero"><p class="eyebrow">Eden account</p><h1>Your account, connected to your Eden workspace.</h1><p>Sign in or create an Eden account with your work email. Your project workspace stays private to your account.</p></section>
+
+    <section class="account-auth" aria-live="polite">
+      <div class="auth-panel" id="auth-panel">
+        <div class="auth-tabs" role="tablist"><button class="auth-tab active" type="button" data-auth-tab="signin">Sign in</button><button class="auth-tab" type="button" data-auth-tab="signup">Create account</button></div>
+        <div id="auth-message" class="auth-message" hidden></div>
+
+        <form id="sign-in-form" class="auth-form">
+          <label for="sign-in-email">Work email</label><input id="sign-in-email" type="email" autocomplete="email" required>
+          <label for="sign-in-password">Password</label><input id="sign-in-password" type="password" autocomplete="current-password" required>
+          <button class="auth-tab" id="forgot-password-button" type="button">Forgot password?</button>
+          <button class="button button-primary" type="submit">Sign in <span>→</span></button>
+        </form>
+
+        <form id="sign-up-form" class="auth-form" hidden>
+          <label for="sign-up-email">Work email</label><input id="sign-up-email" type="email" autocomplete="email" required>
+          <label for="sign-up-password">Create password</label><input id="sign-up-password" type="password" autocomplete="new-password" minlength="8" required>
+          <label for="sign-up-password-confirm">Confirm password</label><input id="sign-up-password-confirm" type="password" autocomplete="new-password" minlength="8" required>
+          <p class="auth-hint">Use 8 or more characters. A mix of uppercase letters, lowercase letters, and numbers is recommended. We’ll send a confirmation email before the account is active.</p>
+          <p class="auth-hint">By creating an account, you agree to Eden’s <a href="terms.html">Terms of Service</a> and acknowledge the <a href="privacy.html">Privacy Policy</a>.</p>
+          <button class="button button-primary" type="submit">Create account <span>→</span></button>
+        </form>
+
+        <form id="reset-request-form" class="auth-form" hidden>
+          <label for="reset-email">Work email</label><input id="reset-email" type="email" autocomplete="email" required>
+          <p class="auth-hint">We’ll email you a secure link to choose a new password.</p>
+          <button class="button button-primary" type="submit">Send reset link</button>
+          <button class="auth-tab" id="back-to-sign-in-button" type="button">Back to sign in</button>
+        </form>
+
+        <form id="update-password-form" class="auth-form" hidden>
+          <label for="new-password">New password</label><input id="new-password" type="password" autocomplete="new-password" minlength="8" required>
+          <label for="confirm-password">Confirm new password</label><input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required>
+          <button class="button button-primary" type="submit">Save new password</button>
+        </form>
+      </div>
+
+      <div class="signed-in-panel" id="signed-in-panel" hidden>
+        <p class="eyebrow">Your Eden account</p><h2>Welcome to Eden.</h2><p>You are signed in as <strong id="account-email"></strong>.</p>
+
+        <div class="account-status-card">
+          <div><span class="account-status-label">Subscription</span><strong>Choose your Eden 1.0 plan</strong><p>Start with a 14-day trial. Your billing details stay with Stripe.</p></div>
+          <button class="button button-primary" id="start-subscription-button" type="button">Start free trial</button>
+        </div>
+
+        <div class="beta-access-card" id="beta-access-card">
+          <div><span class="account-status-label">Beta access</span><strong id="access-title">No active access yet</strong><p id="access-detail">Have a private Eden beta code? Redeem it below for access without a subscription.</p></div>
+          <form id="beta-code-form" class="beta-code-form"><label for="beta-code">Beta code</label><div><input id="beta-code" type="text" autocomplete="off" placeholder="Enter your code" required><button class="button button-ghost" type="submit">Redeem code</button></div></form>
+        </div>
+
+        <div class="account-action-grid">
+          <article><span class="account-status-label">Workspace</span><h3>Open Eden</h3><p>Open your protected Eden workspace. Eden will recognize this browser's active app session or securely ask you to sign in.</p><button class="text-action text-action-disabled" id="open-workspace-button" type="button" disabled>Available with access</button></article>
+          <article><span class="account-status-label">Billing</span><h3>Manage subscription</h3><p>After checkout, this is where you will update payment details, change plans, or cancel.</p><button class="text-action" id="manage-billing-button" type="button">Manage billing</button></article>
+        </div>
+
+        <div id="billing-message" class="auth-message" hidden></div>
+        <div class="signed-in-actions"><button class="button button-ghost" id="sign-out-button" type="button">Sign out</button></div>
+        <p class="account-note">Website sign-in and Eden app sign-in are intentionally separate. After your subscription is verified, Eden will always ask you to sign in to the app before showing a workspace.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer><a class="brand" href="index.html"><img src="assets/eden_logo.png" alt="Eden"></a><p>Construction made easier.</p><span>© 2026 Eden. Built for contractors. · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <a href="refunds.html">Refunds</a></span></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js?v=4"></script>
+  <script src="script.js"></script>
+  <script src="account.js"></script>
+</body>
+</html>
